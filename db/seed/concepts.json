@@ -1,0 +1,1407 @@
+[
+ {
+  "slug": "idempotency-keys",
+  "title": "Idempotency Keys",
+  "category": "distributed systems",
+  "one_liner": "The client picks a unique key so a retried request runs at most once.",
+  "body_md": "**The mechanism.** The caller generates a unique key per logical operation and sends it with the request. The server stores the key alongside the result of the first execution. A second request carrying the same key does not re-execute: it returns the stored response. The key must be recorded in the *same transaction* as the side effect, or a crash between the two leaves you with a charge and no key.\n\n**Where it bites.** Networks fail in the one place that matters: after the server committed but before the client saw the response. The client cannot distinguish \"never arrived\" from \"arrived and succeeded\", so it retries, and the user is charged twice. Idempotency moves the decision to the server, which is the only party that knows.\n\n**The hard parts.** Key scope (per user? per endpoint?), retention (Stripe keeps keys 24 hours), and what to do when the same key arrives with a *different* body \u2014 that is a client bug, and returning the original result silently hides it. Return a 422 instead.\n\n**Takeaway.** Any endpoint that moves money, sends a message, or creates a resource needs this. \"The client will only call it once\" is not a design.",
+  "links": [
+   {
+    "title": "Stripe: Idempotent requests",
+    "url": "https://docs.stripe.com/api/idempotent_requests"
+   },
+   {
+    "title": "Implementing Stripe-like idempotency keys",
+    "url": "https://brandur.org/idempotency-keys"
+   }
+  ],
+  "tags": [
+   "api design",
+   "reliability",
+   "http"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "cap-theorem-in-practice",
+  "title": "CAP, In Practice",
+  "category": "distributed systems",
+  "one_liner": "You do not choose between C and A; you choose what to do during a partition.",
+  "body_md": "**The mechanism.** CAP says that when the network partitions, a replicated system must either refuse to answer (preserving consistency) or answer from possibly-stale state (preserving availability). It is a statement about a specific failure mode, not a ranking of databases.\n\n**Why the popular version is wrong.** \"We picked AP\" is usually meaningless, because partitions are rare and the interesting tradeoff is the one you make *all the time*: latency versus staleness. That is PACELC \u2014 **P**artition: **A** or **C**, **E**lse **L**atency or **C**onsistency. Most systems that call themselves AP are really choosing L over C on every single read, partition or not.\n\n**Where it bites.** Teams read CAP as permission to skip reasoning about consistency entirely. Then a user updates their profile, a read hits a lagging replica, the UI shows the old value, and the user clicks save again on stale data. No partition occurred; the problem was replica lag, which CAP never mentioned.\n\n**Takeaway.** Ask the real question: what does a read return when the last write went to another replica, and what does the user do with that answer?",
+  "links": [
+   {
+    "title": "Brewer's CAP paper (12 years later)",
+    "url": "https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/"
+   },
+   {
+    "title": "PACELC: Abadi",
+    "url": "https://www.cs.umd.edu/~abadi/papers/abadi-pacelc.pdf"
+   }
+  ],
+  "tags": [
+   "consistency",
+   "replication",
+   "theory"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "read-your-writes",
+  "title": "Read-Your-Writes Consistency",
+  "category": "distributed systems",
+  "one_liner": "The weakest guarantee that stops a user seeing their own edit vanish.",
+  "body_md": "**The mechanism.** After a session performs a write, every subsequent read *in that session* must reflect it. Other sessions may still see the old value. This is a session guarantee, not a global one, which is what makes it cheap.\n\n**How it is implemented.** Three common ways: route the session to the primary for a short window after a write; have the write return a log position (an LSN, a timestamp, a token) and require later reads to wait until the replica has caught up to it; or read from the primary for just the records the session touched.\n\n**Where it bites.** The classic bug: user edits their avatar, the write goes to the primary, the page reloads, the read hits a replica 200ms behind, and the old avatar appears. The user concludes the save failed. Note that caching makes this worse, because a CDN or an application cache can hold the stale value far longer than replication lag.\n\n**Takeaway.** Pure eventual consistency is almost never acceptable for a user's view of their own data. Read-your-writes is the floor, and it is usually one token away.",
+  "links": [
+   {
+    "title": "Session guarantees for weakly consistent replicated data",
+    "url": "https://dl.acm.org/doi/10.1109/PDIS.1994.331722"
+   },
+   {
+    "title": "Jepsen: consistency models",
+    "url": "https://jepsen.io/consistency"
+   }
+  ],
+  "tags": [
+   "consistency",
+   "replication",
+   "caching"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "lsm-tree",
+  "title": "LSM Trees",
+  "category": "databases",
+  "one_liner": "Trade read amplification for write throughput by never updating in place.",
+  "body_md": "**The mechanism.** Writes go to an in-memory table (the memtable) plus a write-ahead log, and nothing else. When the memtable fills, it is flushed to disk as an immutable sorted file (an SSTable). Reads check the memtable, then each level of SSTables, newest first. Background compaction merges SSTables to bound how many a read must consult and to discard overwritten keys.\n\n**Why it is fast to write.** Every write is sequential. A B-tree, by contrast, must find and modify the right page, which is a random write, and it writes a whole page to change one row. LSM trees turn random writes into sequential ones at the cost of making reads check several places.\n\n**The three amplifications.** *Write* amplification: compaction rewrites the same data repeatedly. *Read* amplification: one logical read touches many files (mitigated with bloom filters per SSTable). *Space* amplification: obsolete versions live until compaction. Leveled compaction minimises space and read amplification; size-tiered minimises write amplification. You cannot minimise all three \u2014 that is the RUM conjecture.\n\n**Where you meet them.** RocksDB, LevelDB, Cassandra, ScyllaDB, HBase, and the storage engines under ClickHouse and InfluxDB.\n\n**Takeaway.** If your workload is write-heavy with range scans, this is the shape. If it is read-heavy point lookups on a small dataset, a B-tree still wins.",
+  "links": [
+   {
+    "title": "The Log-Structured Merge-Tree (original paper)",
+    "url": "https://www.cs.umb.edu/~poneil/lsmtree.pdf"
+   },
+   {
+    "title": "RocksDB compaction",
+    "url": "https://github.com/facebook/rocksdb/wiki/Compaction"
+   },
+   {
+    "title": "Designing Data-Intensive Applications, ch. 3",
+    "url": "https://dataintensive.net/"
+   }
+  ],
+  "tags": [
+   "storage engines",
+   "rocksdb",
+   "performance"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "mvcc",
+  "title": "MVCC",
+  "category": "databases",
+  "one_liner": "Readers never block writers because each sees its own snapshot of history.",
+  "body_md": "**The mechanism.** Instead of overwriting a row, the database writes a new version of it, tagged with the transaction that created it. Every transaction gets a snapshot \u2014 a rule for which versions are visible to it. A reader walks the version chain and picks the newest version visible under its snapshot. Writers append; they do not block readers, and readers do not block writers.\n\n**The cost nobody plans for.** Old versions must be collected. In PostgreSQL that is `VACUUM`, and a long-running transaction pins every version created since it started, because that transaction might still need to see them. One forgotten `BEGIN` in a psql session can bloat a table by gigabytes and make the planner's statistics useless. In MySQL/InnoDB the same problem appears as a growing undo log and \"history list length\".\n\n**Snapshot isolation is not serializable.** Two transactions can each read a consistent snapshot, each write a disjoint row, and together break an invariant neither broke alone \u2014 write skew. The textbook case is two doctors both dropping their on-call shift because each sees the other still on call. Fix it with `SELECT ... FOR UPDATE`, a serializable isolation level, or a constraint the database can check.\n\n**Takeaway.** MVCC is why your reads are fast and why your table is 40GB for 2GB of rows.",
+  "links": [
+   {
+    "title": "PostgreSQL: concurrency control",
+    "url": "https://www.postgresql.org/docs/current/mvcc.html"
+   },
+   {
+    "title": "A critique of ANSI SQL isolation levels",
+    "url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/tr-95-51.pdf"
+   }
+  ],
+  "tags": [
+   "postgres",
+   "transactions",
+   "isolation"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "write-skew",
+  "title": "Write Skew",
+  "category": "databases",
+  "one_liner": "Two transactions that are individually correct can break an invariant together.",
+  "body_md": "**The mechanism.** Under snapshot isolation, each transaction reads a consistent snapshot and writes rows no one else wrote. No write-write conflict occurs, so both commit. But each made its decision based on rows the *other* then changed. The invariant spanned both row sets, and nothing checked it.\n\n**The canonical example.** Hospital rule: at least one doctor on call. Alice and Bob are both on call. Each opens a transaction, reads \"two doctors on call, fine\", and takes themselves off. Both commit. Zero doctors on call. Neither transaction wrote a row the other read-locked, because snapshot isolation locks nothing on read.\n\n**Recognising it in your own code.** Look for: read a set of rows, make a decision from an aggregate over them, then write. Booking the last seat, enforcing a unique username without a unique index, enforcing a balance floor across several accounts, claiming a job from a queue.\n\n**The fixes, in order of preference.** A database constraint (unique index, check, exclusion constraint) \u2014 the database checks it for you. Then `SERIALIZABLE` isolation (PostgreSQL's SSI will abort one transaction; you must retry). Then materialising the conflict: lock an explicit row that represents the invariant, so the two transactions do conflict.\n\n**Takeaway.** \"We use transactions\" does not mean \"our invariants hold\". Isolation level is part of the invariant.",
+  "links": [
+   {
+    "title": "Designing Data-Intensive Applications, ch. 7",
+    "url": "https://dataintensive.net/"
+   },
+   {
+    "title": "PostgreSQL: Serializable Snapshot Isolation",
+    "url": "https://wiki.postgresql.org/wiki/SSI"
+   }
+  ],
+  "tags": [
+   "transactions",
+   "isolation",
+   "correctness"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "index-selectivity",
+  "title": "Index Selectivity",
+  "category": "databases",
+  "one_liner": "An index helps only when it eliminates most of the table.",
+  "body_md": "**The mechanism.** Selectivity is the fraction of rows a predicate keeps. An index lookup costs a tree descent plus, for a non-covering index, one random read per matching row to fetch the rest of the row. A sequential scan reads every page but does so sequentially. Past roughly 5\u201310% of the table, the random reads lose and the planner switches to a scan. This is why your index on `status` (three distinct values) is never used, and why you concluded \"the planner is broken\".\n\n**Composite index order.** With an index on `(a, b)`, a query on `a` alone works, a query on `b` alone does not. The rule is leftmost prefix. Put equality columns first, then the range column, then columns you only need for output. A sort can also be served by the index if its order matches `ORDER BY`.\n\n**Covering indexes.** If the index contains every column the query touches (`INCLUDE` in PostgreSQL, a secondary index with the columns in MySQL), the heap fetch disappears and the random-read cost goes away. That can move the crossover point substantially.\n\n**What to actually do.** Read `EXPLAIN (ANALYZE, BUFFERS)`. Compare the planner's row estimate with the real count. A 100x misestimate means stale statistics, a correlated predicate the planner assumes is independent, or a function wrapping the column so the index cannot be used at all.\n\n**Takeaway.** Indexes are not a performance setting you turn on. Each one is a bet about selectivity, and you can read whether the bet paid off.",
+  "links": [
+   {
+    "title": "Use the Index, Luke",
+    "url": "https://use-the-index-luke.com/"
+   },
+   {
+    "title": "PostgreSQL: row estimation examples",
+    "url": "https://www.postgresql.org/docs/current/row-estimate-examples.html"
+   }
+  ],
+  "tags": [
+   "postgres",
+   "query planning",
+   "performance"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "connection-pooling",
+  "title": "Connection Pooling and Pool Exhaustion",
+  "category": "databases",
+  "one_liner": "A Postgres connection is a process; the pool is the real concurrency limit.",
+  "body_md": "**The mechanism.** Each PostgreSQL connection is an OS process with its own memory (`work_mem` is per operation, per connection). A few hundred of them will exhaust a server that handles thousands of queries per second happily on twenty. So you put a pool in front: application-side (HikariCP, `pg.Pool`, SQLAlchemy) or a proxy (PgBouncer, pgcat, RDS Proxy).\n\n**The counterintuitive result.** Throughput peaks at a *small* pool. The useful rule of thumb is roughly `cores * 2 + effective_spindle_count`. Beyond that, connections queue inside the database instead of outside it, context switching and lock contention rise, and p99 gets worse while the dashboard still shows idle CPU.\n\n**Pool exhaustion.** The failure looks like a hang, not an error: every connection is checked out, and new requests block on acquisition until they time out. Three usual causes \u2014 a transaction left open across an HTTP call or a slow external API; a leaked connection on an error path that never returns it; and N+1 queries multiplying hold time. Always set an acquisition timeout, or a slow database becomes an unavailable application.\n\n**Transaction vs session pooling.** PgBouncer in transaction mode multiplexes connections per transaction, which is far more efficient but breaks anything relying on session state: prepared statements, `SET`, advisory locks, `LISTEN/NOTIFY`, temp tables.\n\n**Takeaway.** Your concurrency limit is the pool size, whether you chose it or not. Pick it deliberately and set a timeout on acquisition.",
+  "links": [
+   {
+    "title": "About pool sizing (HikariCP)",
+    "url": "https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing"
+   },
+   {
+    "title": "PgBouncer pooling modes",
+    "url": "https://www.pgbouncer.org/features.html"
+   }
+  ],
+  "tags": [
+   "postgres",
+   "concurrency",
+   "capacity"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "backpressure",
+  "title": "Backpressure",
+  "category": "distributed systems",
+  "one_liner": "A queue that cannot say no is a queue that will fall over.",
+  "body_md": "**The mechanism.** Backpressure is the signal a slow consumer sends upstream to make a fast producer slow down. Without it, the mismatch accumulates somewhere: an unbounded queue, a growing heap, a socket buffer, a disk. The system does not reject work; it accepts work it will never finish, and then dies with everything in flight.\n\n**Unbounded queues are the anti-pattern.** An unbounded queue converts an overload problem into a latency problem and then into an out-of-memory crash. Bound every queue. Once bounded, you must decide what happens when it is full, and that decision is the design: block the producer (propagates backpressure naturally), drop the newest, drop the oldest (often right for telemetry \u2014 fresh data beats stale), or reject with a 429 and a `Retry-After`.\n\n**Why latency is the wrong signal to monitor.** Under overload, latency rises before throughput falls, so a queue that is already doomed looks merely slow. Watch queue *depth* and *wait time*, and the ratio of arrival rate to service rate. Little's Law (`L = \u03bbW`) tells you the rest.\n\n**Load shedding beats queuing.** A request whose client has already timed out is pure waste \u2014 you pay to compute a response nobody reads. Check the deadline before starting work, and drop requests that cannot finish in time. This is the single highest-leverage overload defence in most services.\n\n**Takeaway.** Every link in the chain needs a bound and a documented behaviour at that bound. \"It scales\" means \"it degrades predictably\".",
+  "links": [
+   {
+    "title": "Reactive Streams spec",
+    "url": "https://www.reactive-streams.org/"
+   },
+   {
+    "title": "Handling overload (Google SRE)",
+    "url": "https://sre.google/sre-book/handling-overload/"
+   },
+   {
+    "title": "Using load shedding to avoid overload (AWS Builders' Library)",
+    "url": "https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/"
+   }
+  ],
+  "tags": [
+   "reliability",
+   "queues",
+   "overload"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "circuit-breaker",
+  "title": "Circuit Breaker",
+  "category": "architecture",
+  "one_liner": "Stop calling a dependency that is already failing, so you fail fast instead of piling up.",
+  "body_md": "**The mechanism.** A breaker wraps a remote call and tracks its failure rate. In `closed` state, calls pass through. When failures cross a threshold, it trips to `open` and fails immediately without calling \u2014 no socket, no timeout wait. After a cooldown it moves to `half-open` and lets a few probes through; success closes it, failure re-opens it.\n\n**The problem it actually solves.** It is not about the failing dependency; it is about *you*. Without a breaker, every request to the sick service occupies a thread or a connection for the full timeout. Those resources are shared, so your healthy endpoints starve and a single slow dependency takes the whole service down. That is the cascading failure.\n\n**Getting it wrong.** Too sensitive and you trip on normal jitter, turning a 1% error rate into a 100% outage. Thresholds should be a *rate over a window* with a minimum request count, never a raw count. And the breaker needs a fallback: a cached value, a degraded response, a queued retry. A breaker without a fallback just converts slow failures into fast ones, which is an improvement but not a feature.\n\n**Related tools.** Bulkheads (separate pools per dependency, so one cannot starve the others) and timeouts (a breaker cannot help if your timeout is 60 seconds, because you will exhaust the pool long before the threshold trips). Timeouts first, then bulkheads, then breakers.\n\n**Takeaway.** Set the timeout, isolate the pool, then add the breaker. In that order.",
+  "links": [
+   {
+    "title": "Fowler: CircuitBreaker",
+    "url": "https://martinfowler.com/bliki/CircuitBreaker.html"
+   },
+   {
+    "title": "Resilience4j docs",
+    "url": "https://resilience4j.readme.io/docs/circuitbreaker"
+   },
+   {
+    "title": "Addressing cascading failures (Google SRE)",
+    "url": "https://sre.google/sre-book/addressing-cascading-failures/"
+   }
+  ],
+  "tags": [
+   "reliability",
+   "resilience",
+   "microservices"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "exponential-backoff-jitter",
+  "title": "Exponential Backoff with Jitter",
+  "category": "distributed systems",
+  "one_liner": "Retries without jitter re-synchronise your clients into a self-inflicted DDoS.",
+  "body_md": "**The mechanism.** On failure, wait `base * 2^attempt` before retrying, capped at some maximum, then add randomness. The exponential part gives an overloaded dependency room to recover. The random part \u2014 jitter \u2014 is the half everyone skips, and it is the half that matters.\n\n**Why jitter is not optional.** A dependency blips and fails a thousand requests at once. Every client computes the same backoff and retries at the same instant. The dependency, still recovering, falls over again. The clients retry again, still in lockstep. You have built a retry storm, and it is periodic. Jitter spreads the herd out.\n\n**Which jitter.** AWS measured the variants: *full jitter* (`sleep = random(0, min(cap, base * 2^n))`) wins on both completion time and total work in most cases. \"Equal jitter\" (half fixed, half random) is marginally more predictable. Decorrelated jitter is competitive. Plain exponential with no jitter is always worst.\n\n**The parts that are not the sleep.** Only retry idempotent operations, or carry an idempotency key. Cap *total* attempts and total elapsed time, not just the interval. Never retry a 4xx \u2014 the request is wrong, and retrying it is pure load. Use a retry budget: a token bucket that caps retries at, say, 10% of normal traffic, so a widespread failure cannot multiply your load. And do not retry at every layer: three layers each retrying three times is twenty-seven requests.\n\n**Takeaway.** `retry(3)` with no jitter, no budget and no idempotency is how a brief blip becomes an outage.",
+  "links": [
+   {
+    "title": "Exponential backoff and jitter (AWS)",
+    "url": "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/"
+   },
+   {
+    "title": "Timeouts, retries and backoff with jitter (AWS Builders' Library)",
+    "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+   }
+  ],
+  "tags": [
+   "reliability",
+   "retries",
+   "networking"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "thundering-herd",
+  "title": "Thundering Herd and Cache Stampede",
+  "category": "performance",
+  "one_liner": "One expired key, a thousand simultaneous recomputations.",
+  "body_md": "**The mechanism.** A hot cache key expires. Every concurrent request misses, and every one of them starts the expensive recomputation \u2014 the same query, the same render, the same fan-out. The origin receives a load spike proportional to your traffic, which is exactly when you can least afford it. Worse, the slow origin makes requests pile up, so the herd grows while it waits.\n\n**Three fixes, composable.** *Locking / request coalescing*: the first miss takes a lock and computes; the others wait for its result or serve stale. Go's `singleflight` and Nginx's `proxy_cache_lock` are this. *Stale-while-revalidate*: serve the expired value immediately and refresh in the background, so no user ever waits for a recompute. *Probabilistic early expiry*: each reader independently decides to refresh with a probability that rises as the TTL approaches, so refreshes spread out instead of landing together.\n\n**TTL jitter.** If you populate ten thousand keys in one deploy with identical TTLs, they expire together. Randomise TTLs by \u00b110% and the cliff becomes a slope.\n\n**Beyond caches.** The same shape appears in cron jobs that all fire at `0 * * * *`, clients that reconnect simultaneously after a deploy, and token refreshes that all expire at once. Any synchronised schedule is a herd waiting to happen.\n\n**Takeaway.** Caches turn load problems into coordination problems. Coalesce, serve stale, and jitter your TTLs.",
+  "links": [
+   {
+    "title": "Optimal probabilistic cache stampede prevention",
+    "url": "https://cseweb.ucsd.edu/~avattani/papers/cache_stampede.pdf"
+   },
+   {
+    "title": "Go singleflight",
+    "url": "https://pkg.go.dev/golang.org/x/sync/singleflight"
+   },
+   {
+    "title": "stale-while-revalidate (RFC 5861)",
+    "url": "https://datatracker.ietf.org/doc/html/rfc5861"
+   }
+  ],
+  "tags": [
+   "caching",
+   "reliability",
+   "performance"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "bloom-filter",
+  "title": "Bloom Filters",
+  "category": "algorithms",
+  "one_liner": "A few kilobytes that tell you, with no false negatives, what is definitely absent.",
+  "body_md": "**The mechanism.** A bit array of size `m` and `k` independent hash functions. To insert, hash the element `k` times and set those bits. To query, hash and check: if any bit is 0 the element is *definitely absent*; if all are 1 it is *probably present*. No false negatives, tunable false positives, no deletions, and no way to enumerate what is in it.\n\n**The numbers worth memorising.** About 10 bits per element gives a 1% false positive rate; 14 bits gives 0.1%. That is independent of element size \u2014 a million 200-byte URLs fit in roughly 1.2MB at 1%, versus ~200MB for a hash set. The optimal `k` is `(m/n) * ln2`, around 7 for the 1% case.\n\n**Where it earns its place.** Every SSTable in an LSM tree carries one, so a point lookup skips files that cannot contain the key \u2014 that is what makes LSM reads tolerable. CDNs use them to decide whether an object is worth caching on first request. Chrome shipped one for malicious URLs. Bitcoin used them for light-client filtering.\n\n**Know the variants.** *Counting* Bloom filters support deletion at 3\u20134x the space. *Cuckoo* filters support deletion and beat Bloom on space below ~3% error. *Quotient* filters are more cache-friendly. If you need counts rather than membership, you want Count-Min Sketch; if you need cardinality, HyperLogLog.\n\n**Takeaway.** When a \"probably\" is cheap and a \"definitely not\" is valuable, this is the structure. Always ask what a false positive costs you before you reach for it.",
+  "links": [
+   {
+    "title": "Bloom filter calculator",
+    "url": "https://hur.st/bloomfilter/"
+   },
+   {
+    "title": "Cuckoo filter paper",
+    "url": "https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf"
+   }
+  ],
+  "tags": [
+   "data structures",
+   "probabilistic",
+   "storage"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "consistent-hashing",
+  "title": "Consistent Hashing",
+  "category": "distributed systems",
+  "one_liner": "Adding a node should move 1/n of the keys, not all of them.",
+  "body_md": "**The mechanism.** `hash(key) % n` is catastrophic under resizing: change `n` and almost every key maps somewhere new, so every cache misses and every shard rebalances at once. Consistent hashing maps both keys and nodes onto a ring. A key belongs to the first node clockwise from it. Add or remove a node and only the keys between it and its predecessor move \u2014 about `1/n` of them.\n\n**Virtual nodes.** With one point per node, the ring is lumpy: some nodes own far more of the keyspace than others, and removing a node dumps all its load onto a single neighbour. Give each physical node 100\u2013200 virtual points and the distribution smooths out and the load of a departing node spreads across all the others. Every real implementation does this.\n\n**Bounded loads.** Even with virtual nodes, a hot key or a skewed workload can overload one node. Consistent hashing *with bounded loads* caps any node at `(1+\u03b5)` times the average, spilling to the next node on the ring when it is full. Useful for request routing, not for storage placement.\n\n**The alternatives.** Rendezvous (highest random weight) hashing is simpler \u2014 hash `(key, node)` for every node and take the max \u2014 and gives perfect distribution with no virtual nodes, at `O(n)` per lookup. Jump consistent hash is faster and smaller still, but cannot handle arbitrary node removal, only shrinking the tail.\n\n**Where you will meet it.** Memcached clients, Cassandra and DynamoDB partitioning, Envoy's ring-hash load balancer, and any sharded cache you are about to resize.",
+  "links": [
+   {
+    "title": "Consistent hashing and random trees (original paper)",
+    "url": "https://www.cs.princeton.edu/~chazelle/pubs/ConsistentHashing.pdf"
+   },
+   {
+    "title": "Consistent hashing with bounded loads (Google)",
+    "url": "https://research.google/blog/consistent-hashing-with-bounded-loads/"
+   },
+   {
+    "title": "Rendezvous hashing",
+    "url": "https://en.wikipedia.org/wiki/Rendezvous_hashing"
+   }
+  ],
+  "tags": [
+   "sharding",
+   "load balancing",
+   "caching"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "raft",
+  "title": "Raft",
+  "category": "distributed systems",
+  "one_liner": "Consensus you can actually hold in your head: one leader, an append-only log, a majority.",
+  "body_md": "**The mechanism.** Raft decomposes consensus into three problems. *Leader election*: nodes are followers until one times out, becomes a candidate, and wins a majority vote for a numbered term. *Log replication*: all writes go to the leader, which appends them and replicates to followers; an entry commits once a majority have it. *Safety*: a candidate can only win if its log is at least as up to date as the majority's, which guarantees a new leader never discards committed entries.\n\n**Why it exists.** Paxos is correct and famously hard to implement correctly. Raft was explicitly designed for understandability \u2014 strong leadership, no holes in the log, and terms as a logical clock \u2014 and it won: etcd, Consul, TiKV, CockroachDB, RabbitMQ quorum queues, Kafka's KRaft and Redpanda all run Raft or a close variant.\n\n**What it costs you.** Every write is a majority round trip, so write latency is bounded below by your slowest-of-majority network hop \u2014 which is why a three-region Raft group has a floor of tens of milliseconds per write. Throughput is bounded by the leader. A majority must be alive: 3 nodes tolerate 1 failure, 5 tolerate 2. An even number of nodes buys you nothing.\n\n**The parts that bite in production.** Reading from the leader is not automatically linearizable \u2014 a deposed leader may not know it yet, so you need a lease or a read index. Membership changes are a protocol step, not a config edit. And a slow follower can silently become a liability long before it is \"down\".\n\n**Takeaway.** Raft gives you a replicated log. Everything else \u2014 a KV store, a lock service, a state machine \u2014 is what you build on top of it.",
+  "links": [
+   {
+    "title": "In Search of an Understandable Consensus Algorithm",
+    "url": "https://raft.github.io/raft.pdf"
+   },
+   {
+    "title": "The Raft site (visualisation)",
+    "url": "https://raft.github.io/"
+   },
+   {
+    "title": "etcd: Raft implementation",
+    "url": "https://github.com/etcd-io/raft"
+   }
+  ],
+  "tags": [
+   "consensus",
+   "replication",
+   "etcd"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "vector-clocks",
+  "title": "Vector Clocks and Logical Time",
+  "category": "distributed systems",
+  "one_liner": "Wall clocks cannot order events across machines; counters can.",
+  "body_md": "**The mechanism.** A Lamport clock is a counter per node: increment on every local event, and on receiving a message set your counter to `max(local, received) + 1`. This guarantees that if A caused B then `time(A) < time(B)`. It does *not* tell you the converse, so you cannot distinguish concurrency from causality. A vector clock fixes that: each node keeps a vector of counters, one per node. Compare two vectors element-wise \u2014 if every element of A is \u2264 B, A happened before B; if neither dominates, the events are genuinely concurrent.\n\n**What that buys you.** Concurrency becomes detectable rather than silently resolved. Dynamo used vector clocks so a conflicting write surfaced as *siblings* the application could merge, instead of last-write-wins quietly deleting a user's shopping cart item. Git's commit graph is the same idea made concrete: parents encode causality, and a merge is how you resolve a concurrent pair.\n\n**Why wall clocks fail.** NTP drift, leap seconds, VM pauses and clock skew between machines are all larger than the intervals you are trying to order. \"Last write wins by timestamp\" means \"whichever machine's clock is fastest wins\", which is a data-loss policy, not a conflict-resolution policy. Google's TrueTime and Spanner's commit-wait exist precisely because getting ordering from physical clocks requires bounding the uncertainty in hardware.\n\n**The cost.** Vectors grow with the number of writers, so long-lived objects accumulate entries. Hybrid logical clocks (HLC) are the common compromise: a physical timestamp plus a logical counter, so values are human-readable, close to real time, and still respect causality.\n\n**Takeaway.** If two replicas disagree, the question is never \"which is newer\" but \"are these concurrent\". Only logical time can answer it.",
+  "links": [
+   {
+    "title": "Time, clocks, and the ordering of events (Lamport)",
+    "url": "https://lamport.azurewebsites.net/pubs/time-clocks.pdf"
+   },
+   {
+    "title": "Dynamo: Amazon's highly available key-value store",
+    "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+   },
+   {
+    "title": "Logical physical clocks (HLC)",
+    "url": "https://cse.buffalo.edu/tech-reports/2014-04.pdf"
+   }
+  ],
+  "tags": [
+   "causality",
+   "clocks",
+   "replication"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "crdt",
+  "title": "CRDTs",
+  "category": "distributed systems",
+  "one_liner": "Data types whose merge function is associative, commutative and idempotent \u2014 so replicas converge without coordination.",
+  "body_md": "**The mechanism.** A Conflict-free Replicated Data Type constrains its operations so that concurrent updates can always be merged deterministically, in any order, any number of times. Two flavours: *state-based* (CvRDT) replicas ship their whole state and merge with a join operation that must form a lattice; *operation-based* (CmRDT) replicas ship operations that must commute, which requires reliable causal delivery. Both give you strong eventual consistency: replicas that have seen the same updates are in the same state, with no consensus round trip.\n\n**The catalogue.** G-Counter (grow-only, per-replica counts summed) and PN-Counter (two G-Counters). G-Set, 2P-Set, OR-Set (add/remove with unique tags, so a concurrent add beats a remove). LWW-Register. RGA, Logoot and YATA for sequences \u2014 these are what collaborative text editors use. Yjs and Automerge are the two production libraries worth knowing.\n\n**What the theory does not give you.** Convergence is not correctness. A CRDT guarantees all replicas agree on *a* value; it does not guarantee the value preserves your invariant. You cannot build \"balance must not go below zero\" or \"at most 100 seats\" out of CRDTs without coordination \u2014 that is a hard result, not a missing feature. Metadata also accumulates: tombstones and version vectors need garbage collection, and that usually needs some coordination after all.\n\n**When to reach for them.** Offline-first and local-first applications, collaborative editing, multi-region writes where latency matters more than global invariants, and presence/telemetry merging. When you need an invariant enforced, you need consensus instead.\n\n**Takeaway.** CRDTs move the conflict resolution from runtime to type design. If you can express your state as a lattice, you can drop coordination entirely.",
+  "links": [
+   {
+    "title": "A comprehensive study of CRDTs (Shapiro et al.)",
+    "url": "https://inria.hal.science/inria-00555588/document"
+   },
+   {
+    "title": "CRDT.tech \u2014 curated index",
+    "url": "https://crdt.tech/"
+   },
+   {
+    "title": "Local-first software (Ink & Switch)",
+    "url": "https://www.inkandswitch.com/local-first/"
+   }
+  ],
+  "tags": [
+   "replication",
+   "offline-first",
+   "collaboration"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "saga-pattern",
+  "title": "Saga Pattern",
+  "category": "architecture",
+  "one_liner": "No distributed transaction: a sequence of local commits, each with a compensating undo.",
+  "body_md": "**The mechanism.** A business operation that spans services cannot hold one ACID transaction across them. A saga splits it into local transactions, each committing in its own service, plus a *compensating* transaction for each step that semantically undoes it. If step four fails, you run the compensations for three, two and one, in reverse.\n\n**Two shapes.** *Orchestration*: a coordinator tells each service what to do and tracks progress. Easy to reason about and to observe, but the coordinator is a dependency and can become a god object. *Choreography*: each service listens for events and reacts. No central component, but the flow exists only as an emergent property of the subscriptions, which makes \"what happens when a user checks out\" unanswerable without reading six repos.\n\n**What you give up.** Atomicity across the whole operation, and isolation entirely. Intermediate states are visible: an order exists while payment is still pending. You must design for that \u2014 status fields, semantic locks, a \"pending\" state the UI understands. Compensations are *semantic*, not rollbacks: you cannot un-send an email, so you send an apology; you cannot un-ship a parcel, so you issue a return label.\n\n**Why it is harder than it looks.** Compensations can fail, so they must be retryable and therefore idempotent. Steps can be interleaved with other sagas on the same data. And the \"can this compensation always succeed?\" question has an uncomfortable answer for anything involving the physical world or a third party.\n\n**Takeaway.** Reach for a saga when a single transaction truly cannot span the boundary. If the services share a database, use a transaction. Most sagas in the wild are a distributed solution to a self-inflicted distribution problem.",
+  "links": [
+   {
+    "title": "Sagas (original paper, Garcia-Molina & Salem)",
+    "url": "https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf"
+   },
+   {
+    "title": "microservices.io: Saga pattern",
+    "url": "https://microservices.io/patterns/data/saga.html"
+   }
+  ],
+  "tags": [
+   "microservices",
+   "transactions",
+   "patterns"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "outbox-pattern",
+  "title": "Transactional Outbox",
+  "category": "architecture",
+  "one_liner": "The only reliable way to both commit a row and publish an event.",
+  "body_md": "**The mechanism.** You cannot atomically write to your database and publish to a broker \u2014 there is no shared transaction. So write the event into an `outbox` table *inside the same database transaction* as the state change. A separate process reads unpublished rows and sends them to the broker, marking them sent. The commit is atomic; the publish is at-least-once.\n\n**The bug it prevents.** The naive version does `db.commit()` then `broker.publish()`. Crash between them and the order exists but no one was told \u2014 a silent, permanent inconsistency that no retry can detect. Swap the order and you get phantom events for orders that do not exist. There is no ordering of two non-transactional calls that is correct.\n\n**Reading the outbox.** Polling is simple and fine at modest scale (`SELECT ... WHERE published_at IS NULL ORDER BY id LIMIT n FOR UPDATE SKIP LOCKED`). Change Data Capture is better at scale: Debezium tails the write-ahead log, so there is no polling load and ordering comes from the log itself. `SKIP LOCKED` is what makes concurrent pollers safe.\n\n**At-least-once is the contract.** The relay can crash after publishing and before marking, so consumers *will* see duplicates. Every consumer needs to be idempotent \u2014 dedupe on the event id. If you also need ordering, partition by aggregate id and keep a single consumer per partition.\n\n**The inverse, too.** The same reasoning applies on the consume side: the *inbox* pattern records processed event ids in the same transaction as the side effect, which is how a consumer becomes genuinely idempotent rather than hopefully so.\n\n**Takeaway.** Dual writes are the single most common source of permanent data inconsistency in event-driven systems, and the outbox removes the whole class.",
+  "links": [
+   {
+    "title": "microservices.io: Transactional outbox",
+    "url": "https://microservices.io/patterns/data/transactional-outbox.html"
+   },
+   {
+    "title": "Debezium: outbox event router",
+    "url": "https://debezium.io/documentation/reference/transformations/outbox-event-router.html"
+   }
+  ],
+  "tags": [
+   "event driven",
+   "microservices",
+   "kafka"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "structured-concurrency",
+  "title": "Structured Concurrency",
+  "category": "concurrency",
+  "one_liner": "A task cannot outlive the scope that started it.",
+  "body_md": "**The mechanism.** Concurrent tasks are bound to a lexical scope. The scope does not exit until every child task has finished, been cancelled, or failed. Errors propagate to the parent; cancelling the parent cancels all children. Concurrency gets the same shape as a function call: one entry, one exit, no escapees.\n\n**What it fixes.** Fire-and-forget concurrency loses errors (a rejected promise nobody awaited), leaks tasks (a goroutine blocked on a channel nobody will write to), and makes cancellation impossible, because there is no handle to the work you started three layers down. The classic symptom is a service whose goroutine or task count climbs monotonically until it dies.\n\n**Where it exists now.** Python's `asyncio.TaskGroup` (3.11+) and Trio's nurseries, which started this whole line of thinking. Java's `StructuredTaskScope` (JEP 453, finalised with virtual threads). Swift's `async let` and task groups. Kotlin's `coroutineScope`. In Go, `errgroup.WithContext` is the idiomatic approximation \u2014 the language itself lets a bare `go` statement escape any scope, which is exactly the hole.\n\n**The rule that follows.** Never start work you have no handle on. If a function starts a task, either it waits for it or it returns something the caller can wait on.\n\n**Takeaway.** `go` and `asyncio.create_task` are the `goto` of concurrency. Scopes are the structured replacement.",
+  "links": [
+   {
+    "title": "Notes on structured concurrency (Nathaniel Smith)",
+    "url": "https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/"
+   },
+   {
+    "title": "JEP 453: Structured Concurrency",
+    "url": "https://openjdk.org/jeps/453"
+   },
+   {
+    "title": "Python asyncio.TaskGroup",
+    "url": "https://docs.python.org/3/library/asyncio-task.html#task-groups"
+   }
+  ],
+  "tags": [
+   "async",
+   "cancellation",
+   "java",
+   "python"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "false-sharing",
+  "title": "False Sharing",
+  "category": "performance",
+  "one_liner": "Two threads touching different variables on the same cache line fight over it.",
+  "body_md": "**The mechanism.** Caches are coherent at *cache line* granularity, typically 64 bytes (128 on Apple silicon's performance cores). If thread A writes `counter[0]` and thread B writes `counter[1]`, and both live on one line, every write invalidates the other core's copy. The data is logically independent; the hardware does not know that. You get the full cost of cache coherence traffic with none of the sharing.\n\n**How it shows up.** A parallel loop that gets *slower* with more threads. Per-thread counters in an array. A struct where a hot atomic sits next to a frequently-read field. Lock-free queues where head and tail indices share a line \u2014 producer and consumer then ping-pong the line on every operation.\n\n**The fix.** Pad or align to a cache line: `#[repr(align(64))]` in Rust, `alignas(std::hardware_destructive_interference_size)` in C++, `@Contended` in the JVM (with `-XX:-RestrictContended`), or just put each counter in its own 64-byte struct. Or avoid the sharing entirely: accumulate thread-locally and combine once at the end, which is usually both simpler and faster.\n\n**Finding it.** `perf c2c` on Linux is purpose-built for this. Otherwise look for high `MEM_LOAD_L3_HIT_RETIRED.XSNP_HITM` or simply test the padding hypothesis \u2014 it takes five minutes and the speedup is unmistakable when you are right.\n\n**Takeaway.** On modern hardware, memory layout *is* a concurrency concern. 64 bytes is a number worth remembering.",
+  "links": [
+   {
+    "title": "perf c2c: false sharing detection",
+    "url": "https://joemario.github.io/blog/2016/09/01/c2c-blog/"
+   },
+   {
+    "title": "What every programmer should know about memory",
+    "url": "https://people.freebsd.org/~lstewart/articles/cpumemory.pdf"
+   }
+  ],
+  "tags": [
+   "cpu caches",
+   "multithreading",
+   "optimization"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "happens-before",
+  "title": "Happens-Before and Memory Barriers",
+  "category": "concurrency",
+  "one_liner": "Without a barrier, there is no guarantee another thread ever sees your write.",
+  "body_md": "**The mechanism.** Compilers reorder instructions, and CPUs reorder memory operations and buffer stores. Both are legal because single-threaded semantics are preserved. Across threads, that guarantee evaporates. A memory model defines *happens-before*: a partial order such that if write W happens-before read R, R must observe W. Synchronisation operations \u2014 a lock release/acquire pair, a volatile write/read, an atomic store-release/load-acquire \u2014 create those edges. Nothing else does.\n\n**The bug.** A worker sets `done = true` and the reader loops `while (!done) {}`. Without volatile or an atomic, the compiler may hoist the read out of the loop entirely and the loop never terminates. This is not a theoretical risk; it is standard optimisation. Double-checked locking without volatile has the same flavour: another thread can see a non-null reference to a partially constructed object.\n\n**The orderings worth knowing.** *Relaxed* gives atomicity only, no ordering. *Acquire* on a load and *release* on a store together give you the publish/subscribe edge you almost always want \u2014 everything written before the release is visible after the acquire. *SeqCst* adds a single global order and costs a full fence. Use acquire/release; reach for relaxed only for counters whose value you read once at the end.\n\n**Data race is undefined behaviour.** In C and C++ this is not a figure of speech: a racy program has no defined meaning at all, and the compiler may do anything. Java and Go define racy outcomes more narrowly but still permit values you would call impossible.\n\n**Takeaway.** \"It works on my machine\" and \"it works on x86\" are the same statement, and neither survives an ARM server or a new compiler version.",
+  "links": [
+   {
+    "title": "The Java Memory Model FAQ (Manson & Goetz)",
+    "url": "https://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html"
+   },
+   {
+    "title": "Memory models (Russ Cox, 3 parts)",
+    "url": "https://research.swtch.com/mm"
+   },
+   {
+    "title": "cppreference: memory order",
+    "url": "https://en.cppreference.com/w/cpp/atomic/memory_order"
+   }
+  ],
+  "tags": [
+   "atomics",
+   "java",
+   "c++",
+   "rust"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "virtual-threads-vs-async",
+  "title": "Virtual Threads vs async/await",
+  "category": "concurrency",
+  "one_liner": "Two answers to the same problem: a thread per request is expensive, so stop blocking an OS thread.",
+  "body_md": "**The problem both solve.** A blocking call parks an OS thread. OS threads cost ~1MB of stack and a kernel scheduling slot, so a thread-per-request server tops out in the low thousands. Most of those threads are doing nothing but waiting on I/O.\n\n**async/await (stackless).** The compiler rewrites your function into a state machine; `await` is a suspension point. Cheap and explicit, but it colours your functions: an async function can only be awaited by another async function, so the asyncness propagates up the entire call graph, and every library needs an async twin. Rust, JavaScript, C#, Python work this way.\n\n**Virtual threads (stackful).** The runtime gives each task its own growable stack and unmounts it from the carrier thread when it blocks. Existing blocking code just works \u2014 no colouring, real stack traces, thread-locals and debuggers behave. Java 21+, Go's goroutines, Erlang's processes work this way. The cost is runtime complexity and, for Java, a long tail of pinning problems: a `synchronized` block or a native call pins the virtual thread to its carrier and you lose the benefit.\n\n**What neither fixes.** Concurrency limits. Cheap tasks make it easy to start ten thousand database queries, and your pool has twenty connections. You still need a semaphore, a bounded pool, and backpressure \u2014 the bottleneck simply moved somewhere less visible.\n\n**Takeaway.** Stackless is explicit and viral; stackful is transparent and magic. The interesting question in both is where you put the limit.",
+  "links": [
+   {
+    "title": "JEP 444: Virtual Threads",
+    "url": "https://openjdk.org/jeps/444"
+   },
+   {
+    "title": "What color is your function?",
+    "url": "https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/"
+   }
+  ],
+  "tags": [
+   "java",
+   "async",
+   "runtime"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "head-of-line-blocking",
+  "title": "Head-of-Line Blocking",
+  "category": "networking",
+  "one_liner": "One stalled item at the front of a queue holds up everything behind it, at every layer.",
+  "body_md": "**The mechanism.** A FIFO where the first element cannot proceed blocks the rest, even though they could. The pattern recurs at every layer of the stack, and each fix pushed the problem down a level.\n\n**HTTP/1.1.** One request per connection at a time. A slow response blocks the connection, so browsers opened six connections per origin and we sharded assets across domains to get more. Pipelining was specified and effectively never worked, because servers had to respond in order.\n\n**HTTP/2.** Multiplexed streams over one TCP connection solved it at the application layer \u2014 and reintroduced it at the transport layer. TCP guarantees in-order delivery, so one lost packet stalls *every* stream sharing that connection until the retransmission arrives. On a lossy mobile link, HTTP/2 can be worse than six HTTP/1.1 connections.\n\n**HTTP/3.** QUIC moves stream multiplexing into the transport over UDP, with per-stream ordering. A lost packet affecting stream 3 does not block streams 1 and 2. This is the main reason QUIC exists.\n\n**Elsewhere.** A Kafka consumer stuck on a poison message blocks its whole partition. A single-threaded worker pulling from one queue blocks on its slowest job. A switch port buffering for a congested egress blocks unrelated traffic.\n\n**Takeaway.** When you see a shared ordered queue, ask what happens when its head stalls. The answer is usually your p99.",
+  "links": [
+   {
+    "title": "HTTP/3 explained",
+    "url": "https://http3-explained.haxx.se/"
+   },
+   {
+    "title": "RFC 9000: QUIC",
+    "url": "https://datatracker.ietf.org/doc/html/rfc9000"
+   }
+  ],
+  "tags": [
+   "http",
+   "quic",
+   "kafka"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "bandwidth-delay-product",
+  "title": "Bandwidth-Delay Product and Bufferbloat",
+  "category": "networking",
+  "one_liner": "Throughput over a fat long link is limited by your window, not your bandwidth.",
+  "body_md": "**The mechanism.** The bandwidth-delay product is how many bytes fit \"in flight\" on a link: `bandwidth x round-trip time`. A 1 Gbps link with 100ms RTT holds 12.5MB. If the TCP receive window is 64KB, you can have at most 64KB unacknowledged, so you achieve `64KB / 0.1s` \u2248 5 Mbps on a gigabit link. The bottleneck is the window, and no amount of extra bandwidth helps.\n\n**Why cross-region transfers are slow.** This is the whole answer. Window scaling (RFC 7323) is required for anything above 64KB; so is enough buffer on both sides. Parallel streams work around it by multiplying the in-flight bytes, which is why `s3 cp` with concurrency beats a single stream, and why `iperf3 -P 8` reports a different number than `-P 1`.\n\n**Bufferbloat, the opposite failure.** Oversized router buffers absorb congestion instead of signalling it. Loss-based congestion control only slows down when it sees loss, so it fills the buffer first \u2014 adding hundreds of milliseconds of queueing delay. Your download runs at full speed while video calls on the same link become unusable. The fix is at the queue: fq_codel and CAKE drop or mark early. BBR attacks it from the sender side by modelling bottleneck bandwidth and RTT rather than waiting for loss.\n\n**What to measure.** Not bandwidth. Latency *under load* \u2014 run a ping while saturating the link. If RTT jumps from 20ms to 300ms, you have bufferbloat, and no speed-test number will show it.\n\n**Takeaway.** Throughput and latency are not independent. Capacity planning that only counts bandwidth will be wrong about both.",
+  "links": [
+   {
+    "title": "Bufferbloat (ACM Queue, Gettys & Nichols)",
+    "url": "https://queue.acm.org/detail.cfm?id=2071893"
+   },
+   {
+    "title": "BBR congestion control",
+    "url": "https://queue.acm.org/detail.cfm?id=3022184"
+   }
+  ],
+  "tags": [
+   "tcp",
+   "latency",
+   "throughput"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "tls-handshake",
+  "title": "The TLS Handshake",
+  "category": "security",
+  "one_liner": "What those two round trips buy, and why resumption matters.",
+  "body_md": "**The mechanism.** TLS 1.3 reduced the handshake to one round trip. The client sends its supported groups plus a key share guess; the server replies with its own key share, certificate and a Finished message; both derive the same secrets via ECDHE. From then on, traffic is symmetric-encrypted \u2014 fast. The handshake's cost is almost entirely latency, not CPU.\n\n**What it actually provides.** *Confidentiality* and *integrity* from the derived keys. *Authentication* from the certificate chain, which is the part people misconfigure: a valid chain means the CA asserts the key belongs to that hostname, and nothing more. *Forward secrecy* from the ephemeral keys \u2014 compromising the server's long-term private key tomorrow does not decrypt traffic captured today, which is why static RSA key exchange was removed in 1.3.\n\n**Resumption and 0-RTT.** A session ticket lets the client skip the key exchange next time. TLS 1.3's 0-RTT goes further and sends application data in the first flight, but that data is *replayable* \u2014 an attacker can capture and resend it. Only use 0-RTT for idempotent requests, which in practice means GETs, and never for anything that mutates state.\n\n**The practical failures.** Expired certificates (the single most common production outage of this class), missing intermediate certificates that work in browsers but fail in curl and Java, clock skew breaking validity windows, and SNI being required for virtual hosting. OCSP stapling and certificate transparency logs are both worth understanding before you debug a trust failure.\n\n**Takeaway.** TLS is cheap once established and expensive to establish. Connection reuse and keep-alive are security features as much as performance ones.",
+  "links": [
+   {
+    "title": "RFC 8446: TLS 1.3",
+    "url": "https://datatracker.ietf.org/doc/html/rfc8446"
+   },
+   {
+    "title": "An illustrated TLS 1.3 connection",
+    "url": "https://tls13.xargs.org/"
+   }
+  ],
+  "tags": [
+   "tls",
+   "https",
+   "cryptography"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "page-cache-fsync",
+  "title": "The Page Cache and What fsync Really Guarantees",
+  "category": "operating systems",
+  "one_liner": "write() returns long before your data is anywhere durable.",
+  "body_md": "**The mechanism.** `write()` copies into the kernel page cache and returns. The data is visible to every process immediately \u2014 and lost entirely if the machine loses power. `fsync(fd)` is what forces those pages to stable storage, and it must also flush the *drive's* volatile write cache, which is why `fsync` costs milliseconds on spinning disks and hundreds of microseconds on SSDs.\n\n**The parts that surprise people.** `fsync` on a file does not guarantee the *directory entry* is durable \u2014 a newly created file can vanish while its contents survive, so you must fsync the parent directory too. The standard safe-rename dance is: write to a temp file, fsync it, rename over the target, fsync the directory. `fdatasync` skips metadata that is not needed to read the data back, which is faster and usually sufficient.\n\n**Error handling is worse than you think.** When a writeback fails, Linux historically marked the error on the page and cleared it after the *first* reader saw it \u2014 so a second `fsync` could return success for data that was never written. \"fsyncgate\" was PostgreSQL discovering this the hard way in 2018, and it changed how they handle writeback errors entirely. The rule that came out of it: an fsync error is unrecoverable at the process level, and the only safe response is to crash and recover from the log.\n\n**Why databases care so much.** This is why group commit exists (amortise one fsync across many transactions), why `synchronous_commit = off` is fast and dangerous, and why a cloud disk's advertised IOPS tells you nothing about its fsync latency.\n\n**Takeaway.** Durability has a syscall and a cost. If you have not called it and checked its return, you have a cache, not a database.",
+  "links": [
+   {
+    "title": "PostgreSQL fsync surprise (LWN)",
+    "url": "https://lwn.net/Articles/752063/"
+   },
+   {
+    "title": "Files are hard (Dan Luu)",
+    "url": "https://danluu.com/file-consistency/"
+   }
+  ],
+  "tags": [
+   "linux",
+   "durability",
+   "storage"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "copy-on-write",
+  "title": "Copy-on-Write",
+  "category": "operating systems",
+  "one_liner": "Share the pages until someone writes, then copy only that page.",
+  "body_md": "**The mechanism.** Instead of duplicating memory eagerly, map the same physical pages into both address spaces read-only. On the first write, the MMU traps, the kernel copies that single page, and the writer gets a private copy. Everything untouched stays shared. `fork()` is the canonical use: it would be unusable if it copied a 4GB heap, and it is nearly free because it copies page tables instead.\n\n**Where it shows up.** `fork()`+`exec()`. Redis's background save \u2014 it forks, and the child writes a consistent snapshot of memory as it was at fork time. Filesystem snapshots in ZFS, Btrfs and overlayfs. Docker image layers. Python's `multiprocessing` with `fork` start method, and the trick of loading a large read-only dataset before forking workers so they share it.\n\n**The failure mode.** COW memory is *accounted* when written, not when mapped, so a forked child that writes broadly can double your RSS with no allocation in sight. Redis's `used_memory` can be 8GB while the OS reports 15GB during a save, which is why it needs `vm.overcommit_memory = 1` and why OOM kills during BGSAVE are a classic. Python's reference counting defeats the whole trick: touching an object writes its refcount, which copies the page, so \"shared\" read-only data in forked workers is quietly un-shared.\n\n**Also a data-structure technique.** Persistent/immutable collections use structural sharing \u2014 the same idea applied to trees. Clojure's vectors, Immer, and Git's object store all work this way.\n\n**Takeaway.** COW makes copies cheap to *make* and surprising to *account for*. Watch RSS, not allocations.",
+  "links": [
+   {
+    "title": "Redis persistence and fork",
+    "url": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/"
+   },
+   {
+    "title": "Linux fork(2)",
+    "url": "https://man7.org/linux/man-pages/man2/fork.2.html"
+   }
+  ],
+  "tags": [
+   "memory",
+   "linux",
+   "redis"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "tail-latency-amplification",
+  "title": "Tail Latency Amplification",
+  "category": "performance",
+  "one_liner": "A request that fans out to 100 services almost always hits someone's p99.",
+  "body_md": "**The mechanism.** If one backend has a 1% chance of exceeding 100ms, and your request must wait for 100 independent backends, the probability that *at least one* is slow is `1 - 0.99^100` \u2248 63%. Your p50 is now your backends' p99. Fan-out converts a rare tail event into the common case, and this is the single most important arithmetic fact in distributed systems performance.\n\n**Why averages mislead.** A dashboard showing \"average backend latency: 8ms\" is compatible with most user requests taking 200ms. You must measure the *end-to-end* distribution, and you must know your fan-out factor to predict it.\n\n**The defences.** *Hedged requests*: after waiting the p95, send a duplicate to another replica and take the first answer \u2014 ~5% extra load for a dramatic tail improvement. *Tied requests*: enqueue on two replicas, and the one that starts first cancels the other. *Micro-partitioning* with more partitions than machines, so load can be shed at fine grain. *Selective replication* of hot partitions. These are Dean & Barroso's recipes and they still define the field.\n\n**The causes to fix first.** Shared resource contention, background activity (compaction, GC, log rotation), queueing behind a slow item, and power/thermal throttling. Note that GC pauses and compaction are *correlated* across replicas if they were started together \u2014 another synchronisation problem.\n\n**Takeaway.** If you fan out, your SLO is a function of your backends' tail, not their median. Reduce fan-out, or hedge.",
+  "links": [
+   {
+    "title": "The tail at scale (Dean & Barroso)",
+    "url": "https://research.google/pubs/the-tail-at-scale/"
+   },
+   {
+    "title": "How to measure latency (Gil Tene)",
+    "url": "https://www.infoq.com/presentations/latency-response-time/"
+   }
+  ],
+  "tags": [
+   "latency",
+   "slo",
+   "microservices"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "coordinated-omission",
+  "title": "Coordinated Omission",
+  "category": "performance",
+  "one_liner": "Your load test stopped sending requests while the system was slow, so it never measured the slowness.",
+  "body_md": "**The mechanism.** A load generator issues a request, waits for the response, then issues the next. When the system stalls for a second, the generator also stalls \u2014 so instead of recording one 1000ms sample and a thousand queued samples that each waited, it records *one* slow sample and then resumes. The stall is averaged away. The resulting p99 can be off by orders of magnitude, and it is wrong in the optimistic direction, which is the worst way to be wrong.\n\n**Why it matters more than any tuning you will do.** Gil Tene's demonstration is that a test reporting a 99th percentile of 20ms can describe a system whose real 99th percentile is over a second. Every capacity decision built on that number is invalid. This affects almost every hand-rolled benchmark and a good number of published ones.\n\n**How to avoid it.** Measure *service time from the intended start*, not from when you got around to sending. Generators that do this properly: `wrk2`, `fortio`, JMeter with a constant-throughput timer plus corrections, and anything using HdrHistogram's `recordValueWithExpectedInterval`. Fix the request rate (open-loop) rather than the concurrency (closed-loop) \u2014 a closed-loop test with 50 threads cannot generate more than 50 outstanding requests, so it cannot reproduce overload.\n\n**The related sins.** Reporting averages for latency at all (the distribution is multi-modal, the mean is meaningless); reporting a percentile without the sample count; averaging percentiles across instances, which is not a percentile of anything.\n\n**Takeaway.** Before you trust a latency number, ask what the load generator did while the system was stalled. If the answer is \"waited\", the number is fiction.",
+  "links": [
+   {
+    "title": "How NOT to measure latency (Gil Tene)",
+    "url": "https://www.infoq.com/presentations/latency-response-time/"
+   },
+   {
+    "title": "wrk2",
+    "url": "https://github.com/giltene/wrk2"
+   }
+  ],
+  "tags": [
+   "benchmarking",
+   "latency",
+   "measurement"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "littles-law",
+  "title": "Little's Law",
+  "category": "performance",
+  "one_liner": "L = \u03bbW. Three numbers, and knowing two gives you the third, for free.",
+  "body_md": "**The mechanism.** For any stable queueing system, the average number of items in the system equals the arrival rate times the average time each spends there: `L = \u03bbW`. No assumptions about distributions, service order, or arrival patterns \u2014 it holds for any system in steady state. It is the most useful equation in capacity planning precisely because it assumes so little.\n\n**What you do with it.** Your service handles 2,000 requests per second with a mean latency of 50ms, so `L = 2000 x 0.05 = 100` requests are in flight on average. If your thread pool is 50, you are already queueing, and you can show it without a profiler. Inverted: a pool of 20 connections with 10ms queries caps you at 2,000 queries per second, no matter what the hardware does.\n\n**The companion warning.** The Universal Scalability Law adds what Amdahl's Law misses: beyond a point, adding capacity makes throughput *fall*, because of coherence costs \u2014 crosstalk between workers, lock contention, cache coherence, coordination. Real systems have a throughput peak and then decline, and the peak is usually at a lower concurrency than people expect. This is the formal reason small connection pools outperform large ones.\n\n**Using it to catch nonsense.** When a dashboard claims 10,000 rps at 5ms mean latency from 8 worker threads, Little's Law says 50 requests in flight on 8 threads. Something is mismeasured.\n\n**Takeaway.** Latency, throughput and concurrency are one relationship with three names. Fix any two and you have chosen the third.",
+  "links": [
+   {
+    "title": "Little's Law (overview)",
+    "url": "https://en.wikipedia.org/wiki/Little%27s_law"
+   },
+   {
+    "title": "Universal Scalability Law (Gunther)",
+    "url": "http://www.perfdynamics.com/Manifesto/USLscalability.html"
+   }
+  ],
+  "tags": [
+   "capacity",
+   "queueing",
+   "throughput"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "flame-graphs",
+  "title": "Flame Graphs and Sampling Profilers",
+  "category": "performance",
+  "one_liner": "Width is time, not call order. Read it once correctly and you will never guess again.",
+  "body_md": "**The mechanism.** A sampling profiler interrupts the program many times a second and records the stack. A flame graph aggregates identical stacks: the x-axis is the *fraction of samples*, sorted alphabetically (not chronologically), and the y-axis is stack depth. A wide box means that function was on the stack in many samples. A wide box with narrow children means the time is in that function itself.\n\n**How to read it.** Scan the top edge \u2014 those are the functions actually executing. Look for wide plateaus first; a single wide box is a concentrated cost and usually the whole win. Ignore depth: a tall tower is not a problem, it is just a deep call chain. Colour means nothing by default (it is randomised for contrast), unless you are reading a differential graph, where red/blue encode regression/improvement.\n\n**The variants that matter.** *On-CPU* graphs show where cycles go. *Off-CPU* graphs show where you blocked \u2014 I/O, locks, scheduler delay \u2014 and that is often where the latency actually is. If your service is slow but CPU is at 10%, an on-CPU flame graph will tell you nothing and an off-CPU one will tell you everything.\n\n**Getting correct stacks.** Frame pointers are routinely omitted by optimising compilers, which produces broken, truncated graphs; build with `-fno-omit-frame-pointer` or use DWARF/ORC unwinding. For JIT languages you need a perf map (`async-profiler` for the JVM solves this properly, including the safepoint bias that `jstack`-based profilers suffer from).\n\n**Takeaway.** Profile before optimising, sample rather than instrument, and check off-CPU before concluding the code is slow.",
+  "links": [
+   {
+    "title": "Flame graphs (Brendan Gregg)",
+    "url": "https://www.brendangregg.com/flamegraphs.html"
+   },
+   {
+    "title": "async-profiler",
+    "url": "https://github.com/async-profiler/async-profiler"
+   }
+  ],
+  "tags": [
+   "profiling",
+   "observability",
+   "tooling"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "rate-limiting-algorithms",
+  "title": "Rate Limiting Algorithms",
+  "category": "architecture",
+  "one_liner": "Fixed windows let through double your limit. Pick a different one.",
+  "body_md": "**Fixed window.** Count requests per clock interval, reset at the boundary. Trivial to implement, and wrong at the edges: 100 requests at 11:59:59 and 100 more at 12:00:00 is 200 in one second under a \"100 per minute\" limit. Fine for coarse quotas, bad for protecting a service.\n\n**Sliding window log.** Store a timestamp per request and count those within the trailing window. Exactly correct, and memory grows with the limit \u2014 a sorted set per key in Redis. Use when accuracy matters more than cost.\n\n**Sliding window counter.** Weight the previous window's count by how much of it still overlaps. Approximate, cheap, no per-request storage. This is what most API gateways actually do.\n\n**Token bucket.** A bucket of capacity `B` refills at `r` tokens per second; a request takes one token or is rejected. Allows bursts up to `B` while bounding the long-run rate at `r` \u2014 usually what you want, because real traffic is bursty and strict smoothing feels broken to clients. Two integers of state per key.\n\n**Leaky bucket / GCRA.** The smoothing dual of token bucket: requests drain at a constant rate. GCRA implements it with a single timestamp (\"theoretical arrival time\"), which makes it the cheapest *and* the most precise option \u2014 one value per key, no race windows. Underused.\n\n**The parts outside the algorithm.** Return `429` with `Retry-After` and `RateLimit-*` headers so clients can behave. Decide the key deliberately (user, IP, API key, tenant) \u2014 IP limits punish NAT and CGNAT users. And in a cluster, either shard keys to one node or accept approximate global limits; strict distributed limiting means a round trip per request.\n\n**Takeaway.** Token bucket by default, GCRA when you want precision cheaply, sliding log when you must be exact.",
+  "links": [
+   {
+    "title": "Rate limiting with GCRA",
+    "url": "https://brandur.org/rate-limiting"
+   },
+   {
+    "title": "RateLimit header fields for HTTP (IETF draft)",
+    "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/"
+   }
+  ],
+  "tags": [
+   "api design",
+   "throttling",
+   "redis"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "hexagonal-architecture",
+  "title": "Ports and Adapters",
+  "category": "architecture",
+  "one_liner": "Domain logic depends on interfaces it defines; everything else adapts to them.",
+  "body_md": "**The mechanism.** The application core defines *ports* \u2014 interfaces expressing what it needs (\"store an order\", \"notify a customer\") in its own vocabulary. *Adapters* implement those ports against real technology: Postgres, SES, a test double. The dependency arrow points inward: the core never imports the database driver, the driver's adapter imports the core's interface. Also known as hexagonal, clean, or onion architecture; the differences between them are mostly naming.\n\n**What it actually buys.** Testability, primarily: the core is testable without a container, which turns a 40-second integration test into a 40-millisecond unit test, and that changes how often you run tests. Secondarily, the ability to replace infrastructure without touching business rules, and a domain model that reads like the business rather than like SQL.\n\n**Where it goes wrong.** Mechanically mirroring every table with a repository interface that has one implementation forever \u2014 that is ceremony, not decoupling. Leaky ports that return database rows or ORM entities, so the core depends on the schema anyway. And applying it to a CRUD service that has no domain logic worth isolating, where it adds three files per endpoint and protects nothing.\n\n**The honest test.** Can you describe a port without naming a technology? \"OrderRepository.save(Order)\" passes. \"saveOrderToDynamo(item)\" does not. And: does anything other than tests ever use the second implementation? If not, the abstraction is still fine for testability but stop claiming it is about portability.\n\n**Takeaway.** Worth it where the domain logic is the valuable part. Overhead where the application *is* the database.",
+  "links": [
+   {
+    "title": "Hexagonal architecture (Alistair Cockburn)",
+    "url": "https://alistair.cockburn.us/hexagonal-architecture/"
+   },
+   {
+    "title": "Fowler: Domain-driven design and layering",
+    "url": "https://martinfowler.com/bliki/DomainDrivenDesign.html"
+   }
+  ],
+  "tags": [
+   "design",
+   "testing",
+   "ddd"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "event-sourcing",
+  "title": "Event Sourcing",
+  "category": "architecture",
+  "one_liner": "The log of what happened is the source of truth; current state is a projection of it.",
+  "body_md": "**The mechanism.** Instead of storing current state and overwriting it, you append immutable events \u2014 `OrderPlaced`, `ItemAdded`, `OrderShipped` \u2014 and derive state by folding over them. The event log is authoritative and append-only. Read models (projections) are built from it and can be rebuilt from scratch at any time, which means you can add a new view of historical data that you never anticipated.\n\n**What it genuinely gives you.** A complete audit trail for free, including *why* state changed, not just what it is. Temporal queries (\"what did this look like in March?\"). Debugging by replay. And the ability to introduce a new projection shaped for a query you did not know you would have. For domains where history *is* the business \u2014 ledgers, trading, insurance, compliance \u2014 this is the natural model rather than a clever one.\n\n**What it costs.** Eventual consistency between the log and every projection, which the UI must handle. Schema evolution on events you can never migrate away from, only version and upcast. Replays that take hours once the log is large, requiring snapshots. GDPR deletion against an append-only store, which needs crypto-shredding or a rewrite. And a much higher floor of understanding for every engineer who joins.\n\n**The common mistake.** Adopting it for the whole system. It is a per-aggregate decision. Event-source the ledger; use a normal table for user preferences. Also: CQRS is frequently bundled with it but is independent \u2014 you can do either alone, and CQRS without event sourcing is often the right amount of the idea.\n\n**Takeaway.** Choose it when the history has independent value. If you only ever query current state, you are paying for a time machine you will not use.",
+  "links": [
+   {
+    "title": "Fowler: Event sourcing",
+    "url": "https://martinfowler.com/eaaDev/EventSourcing.html"
+   },
+   {
+    "title": "Event sourcing: the hard parts (Oskar Dudycz)",
+    "url": "https://event-driven.io/en/event_streaming_is_not_event_sourcing/"
+   }
+  ],
+  "tags": [
+   "ddd",
+   "cqrs",
+   "patterns"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "expand-contract-migration",
+  "title": "Expand and Contract Migrations",
+  "category": "databases",
+  "one_liner": "Ship schema changes in three deploys so the old and new code can both run.",
+  "body_md": "**The mechanism.** During a rolling deploy, old and new application code run simultaneously against one database. Any schema change must therefore be compatible with both. Split it into phases: **expand** (add the new column/table, nullable, with no code reading it), **migrate** (deploy code that writes both old and new, then backfill existing rows), **contract** (deploy code that reads only the new, then drop the old). Three deploys, each independently safe and reversible.\n\n**The renames you must not do.** `ALTER TABLE ... RENAME COLUMN` breaks every running instance of the old code instantly. Same for dropping a column still selected by `SELECT *`, changing a type in place, or adding a `NOT NULL` column without a default. Each one is a self-inflicted outage during what should be a routine deploy.\n\n**The locks that bite in Postgres.** `ALTER TABLE ADD COLUMN` with a non-volatile default is fast since PG 11. `CREATE INDEX` takes a write lock \u2014 always use `CONCURRENTLY`. Adding a foreign key or a check constraint scans the whole table under lock; add it `NOT VALID`, then `VALIDATE CONSTRAINT` separately, which takes a weaker lock. And set `lock_timeout` before any DDL, because a migration waiting on a lock queues every subsequent query behind it and takes the site down more reliably than the DDL itself ever would.\n\n**Backfills.** Never one `UPDATE` over 50 million rows: it holds a transaction open, bloats the table, and blocks vacuum. Batch it by primary key range with a commit per batch and a sleep between.\n\n**Takeaway.** The question is never \"is this migration correct\" but \"is this migration correct while the previous version is still running\".",
+  "links": [
+   {
+    "title": "Expand/contract (Fowler: ParallelChange)",
+    "url": "https://martinfowler.com/bliki/ParallelChange.html"
+   },
+   {
+    "title": "Postgres at scale: safe schema migrations",
+    "url": "https://stripe.com/blog/online-migrations"
+   },
+   {
+    "title": "strong_migrations (unsafe operation catalogue)",
+    "url": "https://github.com/ankane/strong_migrations"
+   }
+  ],
+  "tags": [
+   "postgres",
+   "deployment",
+   "zero downtime"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "deterministic-simulation-testing",
+  "title": "Deterministic Simulation Testing",
+  "category": "testing",
+  "one_liner": "Run the whole distributed system in one thread with a fake clock and a seeded network, then break it on purpose.",
+  "body_md": "**The mechanism.** Replace every source of nondeterminism \u2014 time, threads, network, disk, random numbers \u2014 with a deterministic, seeded simulator. Run the entire cluster inside one process on one thread. Then inject faults: partition the network, pause a node, reorder messages, corrupt a write, run the clock backwards. Because everything is seeded, a failure is reproducible from the seed alone: the same bug, the same interleaving, every time, in a debugger.\n\n**Why it beats the alternatives.** Integration tests explore one interleaving per run, chosen by the OS scheduler, and the interesting bugs live in rare ones. Chaos engineering finds real failures but cannot reproduce them. Deterministic simulation explores millions of interleavings in CI and hands you a seed for each failure. FoundationDB spent years building the simulator before the database, and attributes its reliability record almost entirely to it. TigerBeetle, Antithesis and Resonate are built on the same bet.\n\n**What it demands.** The code must be written for it: all I/O behind injectable interfaces, no direct clock reads, no hidden threads, no ambient randomness. Retrofitting it into an existing system is usually a rewrite of the I/O layer. That is the real cost, and it is why this technique is rare despite being clearly effective.\n\n**The cheap subset.** Even without full simulation, you get a large fraction of the value from: a virtual clock everywhere (never `time.Now()` in business logic), seeded randomness logged on failure, and property-based tests over operation sequences with shrinking.\n\n**Takeaway.** If a bug is not reproducible, you are debugging by guesswork. Determinism is the feature that makes hard concurrency bugs ordinary.",
+  "links": [
+   {
+    "title": "FoundationDB testing (talk)",
+    "url": "https://www.youtube.com/watch?v=4fFDFbi3toc"
+   },
+   {
+    "title": "TigerBeetle: simulation testing",
+    "url": "https://docs.tigerbeetle.com/concepts/safety/"
+   }
+  ],
+  "tags": [
+   "distributed systems",
+   "reliability",
+   "testing"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "property-based-testing",
+  "title": "Property-Based Testing",
+  "category": "testing",
+  "one_liner": "State the invariant, let the machine find the counterexample, and let it shrink it for you.",
+  "body_md": "**The mechanism.** Instead of writing example-based assertions, you state a property that must hold for all inputs \u2014 \"encoding then decoding returns the original\", \"the result is always sorted\", \"this operation is idempotent\" \u2014 and the framework generates hundreds of random inputs looking for a violation. When it finds one, *shrinking* reduces it to the smallest failing case: not a 400-element list, but `[0, 0]`.\n\n**Why shrinking is the real feature.** A random failure is noise; a minimal failure is a bug report. Shrinking is what turns \"it failed on this 8KB JSON blob\" into \"it fails on the empty string\", which is immediately diagnosable. Any library without good shrinking is much less useful than it looks.\n\n**Properties that find real bugs.** *Round trips*: serialise/deserialise, compress/decompress, parse/print. *Invariants*: a balanced tree stays balanced, a total is conserved. *Metamorphic relations*: `sort(xs) == sort(shuffle(xs))`, or a refactored function agreeing with the old one on all inputs. *Oracles*: compare your fast implementation against an obviously-correct slow one. *Stateful/model-based testing*: generate random sequences of operations against your system and a simple model of it, and assert they agree \u2014 this is the variant that finds concurrency and ordering bugs.\n\n**The honest limits.** Generators are work, and a bad generator explores a narrow slice of the space while looking thorough. Properties can be vacuously true. And it complements example tests rather than replacing them \u2014 a known regression deserves a specific test.\n\n**Where to start.** Hypothesis (Python), fast-check (TS), proptest/quickcheck (Rust), jqwik (Java), Go's native `testing.F` fuzzing. Point one at your parser or your serialiser today; that is where the bugs are.",
+  "links": [
+   {
+    "title": "Hypothesis docs",
+    "url": "https://hypothesis.readthedocs.io/"
+   },
+   {
+    "title": "John Hughes: Testing the hard stuff and staying sane",
+    "url": "https://www.youtube.com/watch?v=zi0rHwfiX1Q"
+   }
+  ],
+  "tags": [
+   "testing",
+   "fuzzing",
+   "correctness"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "oauth-pkce",
+  "title": "Authorization Code with PKCE",
+  "category": "security",
+  "one_liner": "The only OAuth flow you should use in a browser or a mobile app.",
+  "body_md": "**The mechanism.** The client generates a random `code_verifier`, hashes it (`S256`), and sends the hash as `code_challenge` when starting the authorization request. The authorization server returns a code; the client exchanges it for a token while presenting the original verifier. The server hashes it and compares. An attacker who intercepts the code cannot redeem it, because they do not have the verifier.\n\n**What it replaced and why.** The implicit flow returned tokens in the URL fragment \u2014 logged, in history, in `Referer`, with no refresh token and no client authentication. It is removed in OAuth 2.1. PKCE was designed for mobile apps where a custom URL scheme can be hijacked by another app, but it is now required for *all* clients, confidential ones included, because it also defends against code injection.\n\n**The checks that are still yours to make.** Validate `state` to prevent CSRF on the callback. Compare `nonce` in the ID token (OIDC) to what you sent. Use exact redirect-URI matching, never prefix or wildcard matching \u2014 open redirects on the callback are a reliable way to leak codes. Verify `iss` and `aud`. And validate the ID token's signature against the provider's JWKS, with key rotation handled.\n\n**Where tokens go.** Not `localStorage` \u2014 any XSS reads it. A `Secure; HttpOnly; SameSite` cookie, or the BFF pattern where a backend holds the tokens and the browser holds only a session cookie. That is the current recommendation for SPAs.\n\n**Takeaway.** Authorization code + PKCE for everything. If a tutorial shows you `response_type=token`, it is years out of date.",
+  "links": [
+   {
+    "title": "RFC 7636: PKCE",
+    "url": "https://datatracker.ietf.org/doc/html/rfc7636"
+   },
+   {
+    "title": "OAuth 2.0 security best current practice",
+    "url": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics"
+   }
+  ],
+  "tags": [
+   "oauth",
+   "authentication",
+   "web"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "jwt-pitfalls",
+  "title": "JWT Pitfalls",
+  "category": "security",
+  "one_liner": "A signed token you cannot revoke, with four classic verification bugs.",
+  "body_md": "**The mechanism.** A JWT is `base64(header).base64(payload).signature`. The payload is *encoded, not encrypted* \u2014 anyone can read it. Verification means checking the signature with the right key and then checking the claims. Both halves get skipped in the wild.\n\n**The four bugs.** *`alg: none`* \u2014 a library that honours the token's own algorithm claim will accept an unsigned token. *Algorithm confusion* \u2014 a token with `alg: HS256` verified by code expecting RS256 can be signed with the server's *public* key as an HMAC secret. Both are fixed by pinning the expected algorithm in your verification call rather than reading it from the token. *Unverified `kid`* \u2014 a `kid` pointing at an attacker-controlled key or a path traversal. *Decoding instead of verifying* \u2014 `jwt.decode()` without `verify=True` is a different function than it looks like, and it has shipped to production many times.\n\n**The claims nobody checks.** `exp`, `nbf`, `iss`, `aud`. A token minted for service A accepted by service B is a privilege escalation, and only `aud` prevents it.\n\n**Revocation is the real design problem.** A stateless token is valid until it expires, so logout, a password change, or a stolen token cannot be undone. The practical answer is short-lived access tokens (5\u201315 minutes) plus a refresh token checked against server state, with rotation and reuse detection. Once you need a denylist, you have given up statelessness \u2014 at which point an opaque session id in a cookie is simpler and strictly better.\n\n**Takeaway.** Use JWTs for short-lived, cross-service assertions. For browser sessions, a boring server-side session is usually the right answer.",
+  "links": [
+   {
+    "title": "JWT best current practices (RFC 8725)",
+    "url": "https://datatracker.ietf.org/doc/html/rfc8725"
+   },
+   {
+    "title": "Critical vulnerabilities in JSON Web Token libraries",
+    "url": "https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/"
+   }
+  ],
+  "tags": [
+   "jwt",
+   "authentication",
+   "web"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "password-hashing",
+  "title": "Password Hashing",
+  "category": "security",
+  "one_liner": "Slow, salted and memory-hard \u2014 SHA-256 is none of those.",
+  "body_md": "**The mechanism.** A password hash must be *deliberately expensive* to compute, so that an attacker with your database cannot test billions of guesses per second. SHA-256 is designed to be fast, which makes it exactly wrong: a consumer GPU does tens of billions of SHA-256 hashes per second. A proper KDF has a tunable cost and, ideally, a tunable *memory* cost, because memory is what GPUs and ASICs cannot cheaply parallelise.\n\n**The current choices.** *Argon2id* is the first recommendation \u2014 memory-hard, resists both GPU and side-channel attack, and is the Password Hashing Competition winner. *scrypt* is a reasonable alternative. *bcrypt* remains acceptable (cost \u2265 10\u201312) but caps input at 72 bytes, which silently truncates long passphrases. *PBKDF2* only where FIPS compliance demands it, with a high iteration count. OWASP publishes current parameters; use those numbers rather than ones from a 2015 blog post.\n\n**Salting and peppering.** A unique random salt per password is mandatory and is stored alongside the hash \u2014 it defeats rainbow tables and makes identical passwords hash differently. A *pepper* is a secret added to every password, kept outside the database (in a KMS or env var), so a database-only breach yields nothing crackable. Modern KDF libraries encode algorithm, parameters and salt into the output string, so storage is one column.\n\n**The surrounding work.** Constant-time comparison. Rehash on login when you raise the cost parameter. Rate-limit and lock out by account *and* by IP. Check against known-breached password lists. And prefer not to store passwords at all \u2014 passkeys/WebAuthn remove the whole category.\n\n**Takeaway.** Argon2id with OWASP's parameters, a per-password salt, and a plan to raise the cost over time.",
+  "links": [
+   {
+    "title": "OWASP password storage cheat sheet",
+    "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+   },
+   {
+    "title": "Argon2 (RFC 9106)",
+    "url": "https://datatracker.ietf.org/doc/html/rfc9106"
+   }
+  ],
+  "tags": [
+   "cryptography",
+   "authentication",
+   "owasp"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "csrf-and-samesite",
+  "title": "CSRF and SameSite",
+  "category": "security",
+  "one_liner": "The browser attaches your cookies to requests you did not make.",
+  "body_md": "**The mechanism.** Cookies are attached by origin, not by intent. If you are logged into `bank.com`, a form on `evil.com` that POSTs to `bank.com/transfer` will carry your session cookie. The server sees an authenticated, valid request. The attacker never reads the response \u2014 they do not need to, because the side effect already happened.\n\n**The defences, in order.** *`SameSite=Lax`* (now the browser default) stops cookies on cross-site POSTs and subrequests while allowing top-level GET navigation, which removes most of the attack surface for free. *`SameSite=Strict`* is stronger but breaks inbound links into authenticated pages. *Anti-CSRF tokens* \u2014 a per-session or per-request secret in a hidden field or header, compared server-side \u2014 remain necessary for anything important, because SameSite is a browser behaviour you do not control and `Lax` still permits top-level GET. The *double-submit cookie* pattern is a stateless variant, weaker if any subdomain is attacker-controlled. Checking `Origin`/`Sec-Fetch-Site` headers is a good cheap additional layer.\n\n**The traps.** A state-changing `GET` endpoint is unprotectable by tokens, because a plain `<img src>` triggers it \u2014 never mutate on GET. CORS does not prevent CSRF; a simple form POST is not preflighted, so the request lands regardless of your CORS policy. And `Authorization: Bearer` tokens in headers are not auto-attached by the browser, so a pure-header API is not CSRF-vulnerable \u2014 but the moment you also accept a cookie, it is.\n\n**Takeaway.** `SameSite=Lax` plus a token on every mutation, and never mutate on GET.",
+  "links": [
+   {
+    "title": "OWASP CSRF prevention cheat sheet",
+    "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+   },
+   {
+    "title": "SameSite cookies explained",
+    "url": "https://web.dev/articles/samesite-cookies-explained"
+   }
+  ],
+  "tags": [
+   "web security",
+   "cookies",
+   "owasp"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "parameterized-queries",
+  "title": "Parameterised Queries",
+  "category": "security",
+  "one_liner": "Data must never be parsed as code \u2014 and escaping is not how you guarantee that.",
+  "body_md": "**The mechanism.** With a prepared statement, the SQL text and the parameter values travel separately. The database parses and plans the query *before* it sees the values, so a value can never change the statement's structure. `'; DROP TABLE users; --` becomes a string literal that happens to contain punctuation. This is a structural guarantee, not a filtering one, which is why it is categorically better than escaping.\n\n**Why escaping loses.** Escaping depends on getting the character set, quoting style and context exactly right, every time, in every code path. Numeric contexts without quotes, `LIKE` wildcards, multi-byte charset tricks, and identifier positions all have their own rules. One missed call in one legacy function is the whole vulnerability.\n\n**What parameters cannot do.** You cannot parameterise identifiers \u2014 table names, column names, `ORDER BY` columns \u2014 or SQL keywords like `ASC`/`DESC`. Those need an allowlist mapped to literal strings in your code. This is where injection still appears in otherwise careful codebases, usually in a \"flexible sorting\" feature.\n\n**ORMs are not immunity.** Every ORM has a raw-SQL escape hatch, and string interpolation into `.raw()`, `.where(\"...\")`, `.filter(sql)` or a `@Query` annotation is as injectable as anything. Also beware of query builders that accept a whole fragment.\n\n**The same shape elsewhere.** Command injection (`subprocess` with `shell=True`), LDAP, XPath, NoSQL operator injection (`{\"$gt\": \"\"}` as a password), template injection, and prompt injection in LLM systems are all the same bug: a parser that cannot tell your data from its instructions. The fix is always separation, never sanitisation.\n\n**Takeaway.** If a value reaches the database inside the query string, it is a vulnerability regardless of what you did to it first.",
+  "links": [
+   {
+    "title": "OWASP SQL injection prevention",
+    "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+   },
+   {
+    "title": "Bobby Tables",
+    "url": "https://bobby-tables.com/"
+   }
+  ],
+  "tags": [
+   "sql",
+   "injection",
+   "owasp"
+  ],
+  "difficulty": "beginner"
+ },
+ {
+  "slug": "supply-chain-integrity",
+  "title": "Dependency Supply Chain Integrity",
+  "category": "security",
+  "one_liner": "Lockfiles pin versions; integrity hashes pin bytes; neither pins intent.",
+  "body_md": "**The mechanism.** Three separate guarantees, often conflated. A *version range* (`^1.2.0`) says what you will accept. A *lockfile* records the exact resolved versions so builds are repeatable. An *integrity hash* in that lockfile (`sha512-...`) records the exact bytes, so a republished or tampered package fails to install. Without the hash, a registry compromise or a mutated tarball installs silently.\n\n**The attacks to know.** *Typosquatting* (`crossenv` for `cross-env`). *Dependency confusion* \u2014 publishing an internal package name to the public registry, which some resolvers prefer. *Account takeover* of a maintainer, then a malicious patch release that your `^` range picks up automatically. *Build-script execution*: npm `postinstall`, Python `setup.py`, and Cargo build scripts run arbitrary code at *install* time, before any of your tests. *Protestware and self-sabotage* (`colors`, `node-ipc`). The xz backdoor showed the patient version: become a trusted maintainer first.\n\n**What actually reduces risk.** Commit lockfiles and install with `npm ci` / `pip install --require-hashes` / `cargo --locked` \u2014 never a resolving install in CI. Disable install scripts by default (`npm config set ignore-scripts true`) and allowlist the few that need them. Pin GitHub Actions to a commit SHA, not a tag, because tags move. Vendor or mirror through an internal proxy so a registry outage or a yank does not break builds. Generate an SBOM so you can answer \"are we affected\" in minutes rather than days \u2014 that question is the one that arrives at 2am.\n\n**Reproducible builds** close the loop: if the same source produces byte-identical output, you can verify that a published artifact matches the source you reviewed.\n\n**Takeaway.** Your attack surface is the transitive closure of your dependencies, and most of it executes code at install time.",
+  "links": [
+   {
+    "title": "SLSA: supply chain levels for software artifacts",
+    "url": "https://slsa.dev/"
+   },
+   {
+    "title": "Dependency confusion (Alex Birsan)",
+    "url": "https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610"
+   }
+  ],
+  "tags": [
+   "supply chain",
+   "ci",
+   "dependencies"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "variance",
+  "title": "Variance: Covariance and Contravariance",
+  "category": "type systems",
+  "one_liner": "If a Cat is an Animal, is a List of Cats a List of Animals? Only if you cannot write to it.",
+  "body_md": "**The mechanism.** Variance describes how subtyping of a type parameter relates to subtyping of the generic type. *Covariant* (`out T`): `List<Cat>` is a `List<Animal>` \u2014 safe if you only read. *Contravariant* (`in T`): a `Consumer<Animal>` is a `Consumer<Cat>` \u2014 safe if you only write. *Invariant*: neither, which is what a mutable collection must be. The rule follows from one observation: if `List<Cat>` were a writable `List<Animal>`, you could insert a Dog into a list of Cats.\n\n**Function types are the memorable case.** A function is contravariant in its parameters and covariant in its return type. A function that accepts any `Animal` and returns a `Cat` can be used wherever one accepting a `Cat` and returning an `Animal` is expected. Fewer demands, stronger promises.\n\n**Where the languages landed.** Java has *use-site* variance: `List<? extends Animal>` (read-only) and `List<? super Cat>` (write-only) \u2014 hence \"PECS\", producer extends, consumer super. Java's arrays are covariant and mutable, which is unsound and checked at runtime with `ArrayStoreException`. Kotlin and C# use *declaration-site* variance (`out`/`in`), which is tidier. Scala writes `+T`/`-T`. TypeScript infers variance structurally and is deliberately unsound for method parameters (bivariant) for ergonomic reasons \u2014 `strictFunctionTypes` fixes it for standalone function types only.\n\n**Why it matters in practice.** This is the rule behind \"why can't I pass my `List<String>` to a method taking `List<Object>`\", and the reason library APIs take `? extends` on inputs. Getting it right makes an API usable; getting it wrong forces casts on your callers.\n\n**Takeaway.** Read-only is covariant, write-only is contravariant, read-write is invariant. Everything else follows.",
+  "links": [
+   {
+    "title": "Java generics: wildcards (PECS)",
+    "url": "https://docs.oracle.com/javase/tutorial/java/generics/subtyping.html"
+   },
+   {
+    "title": "Kotlin: generics and variance",
+    "url": "https://kotlinlang.org/docs/generics.html"
+   }
+  ],
+  "tags": [
+   "generics",
+   "java",
+   "kotlin",
+   "typescript"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "algebraic-data-types",
+  "title": "Algebraic Data Types and Exhaustiveness",
+  "category": "type systems",
+  "one_liner": "Make the illegal states unrepresentable, then let the compiler find every place you forgot.",
+  "body_md": "**The mechanism.** *Product* types combine fields (a struct: this AND that). *Sum* types choose between variants (an enum with payloads: this OR that). The name is literal \u2014 the number of inhabitants of a product is the product of its fields' counts, and of a sum, the sum. Pattern matching over a sum type with an exhaustiveness check turns \"did I handle every case?\" from a code-review question into a compile error.\n\n**Why sum types change designs.** The common alternative is a struct with several nullable fields and an implicit rule about which combinations are valid: `{status, error_message, result, retry_at}` where `error_message` is set only if `status == \"failed\"`. That rule lives in comments and is violated eventually. A sum type \u2014 `Pending | Succeeded(Result) | Failed(Error) | Retrying(Instant)` \u2014 makes the invalid combinations unconstructible. This is what \"make illegal states unrepresentable\" means concretely.\n\n**The real win is change.** Add a variant, and the compiler lists every match that must be updated. That is a refactoring tool, not just a safety net, and it is why adding a state to a Rust or Swift enum is routine while adding one to a stringly-typed status field is an archaeology project.\n\n**Where to find them.** Rust `enum`, Swift `enum`, Kotlin sealed interfaces, Scala/Haskell/OCaml/F# natively, TypeScript discriminated unions (switch on a literal `kind` field, with `never` in the default branch to force exhaustiveness), Java 21 sealed interfaces plus record patterns. In Go and Python you approximate with interfaces or `match` plus a linter, with no compile-time exhaustiveness.\n\n**Takeaway.** Optional fields that are only valid together are a sum type wearing a disguise.",
+  "links": [
+   {
+    "title": "Designing with types: making illegal states unrepresentable",
+    "url": "https://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/"
+   },
+   {
+    "title": "TypeScript: discriminated unions",
+    "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions"
+   }
+  ],
+  "tags": [
+   "types",
+   "rust",
+   "typescript",
+   "modelling"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "ownership-and-borrowing",
+  "title": "Ownership and Borrowing",
+  "category": "type systems",
+  "one_liner": "Aliasing XOR mutation, checked at compile time \u2014 and that is also a concurrency guarantee.",
+  "body_md": "**The mechanism.** Every value has exactly one owner; when the owner goes out of scope, the value is dropped. You may *borrow* it: any number of shared references (`&T`) OR exactly one mutable reference (`&mut T`), never both at once. Lifetimes ensure no reference outlives what it points to. The entire rule is \"aliasing xor mutability\", and it is enforced statically with no runtime cost.\n\n**What it eliminates.** Use-after-free, double-free, and dangling pointers, by construction. Also iterator invalidation \u2014 mutating a collection while iterating it is a borrow conflict, not a runtime surprise. And, less obviously, data races: a `&mut T` is provably unaliased, so there is nothing to race. `Send` and `Sync` extend this across threads, which is the basis of \"fearless concurrency\" \u2014 the compiler rejects sharing a `Rc` between threads rather than hoping you noticed.\n\n**The cost.** Some correct programs are rejected, because the checker is conservative. Self-referential structures, doubly linked lists and graphs are genuinely awkward; the answers are indices into a `Vec` (usually the right one), `Rc<RefCell<T>>` (moving the check to runtime), or arena allocation. Fighting the borrow checker is normally a sign the data model has unclear ownership, which is a real design problem the compiler surfaced early.\n\n**The ideas travel.** C++ move semantics and `unique_ptr` express ownership without checking it. Swift's exclusivity enforcement and `~Copyable` are a close relative. Linear and affine types in research languages are the general form. Even in garbage-collected languages, asking \"who owns this, and who may mutate it\" prevents a category of bug that no GC addresses.\n\n**Takeaway.** The borrow checker is not a memory feature with concurrency benefits; it is one rule about aliasing that happens to solve both.",
+  "links": [
+   {
+    "title": "The Rust Book: understanding ownership",
+    "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html"
+   },
+   {
+    "title": "Learn Rust with entirely too many linked lists",
+    "url": "https://rust-unofficial.github.io/too-many-lists/"
+   }
+  ],
+  "tags": [
+   "rust",
+   "memory safety",
+   "concurrency"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "metric-cardinality",
+  "title": "Metric Cardinality",
+  "category": "observability",
+  "one_liner": "One label with user IDs in it will cost more than your application.",
+  "body_md": "**The mechanism.** A time series is identified by its metric name plus the full set of label values. Cardinality is the number of distinct combinations, and it is *multiplicative*: 10 endpoints x 5 status codes x 3 regions is 150 series. Add `user_id` with 100,000 values and it is 15 billion. Prometheus holds every active series in memory, so this is not a slow degradation \u2014 it is an OOM kill.\n\n**The labels that destroy you.** User IDs, request IDs, trace IDs, session IDs, email addresses, full URL paths with embedded identifiers (`/orders/12345`), raw error messages, and timestamps. The last one is especially insidious: a label whose value changes every scrape creates a new series every scrape, forever.\n\n**What to do instead.** Normalise paths to route templates before they become labels (`/orders/:id`). Keep high-cardinality identifiers in *logs and traces*, which are designed for them, and use metrics only for aggregatable dimensions. If you need per-user analysis, that is an analytics database, not a metrics system. Bound label values with an allowlist and an explicit `other` bucket, so an unexpected value cannot blow up the series count.\n\n**Detecting it before it pages you.** Prometheus's `/status/tsdb` shows top series by metric and label. Alert on `prometheus_tsdb_head_series` growth rate rather than on absolute value, because the dangerous signature is a sudden slope after a deploy. And remember histograms multiply by their bucket count \u2014 one histogram with 12 buckets and 4 labels is substantial on its own.\n\n**Takeaway.** Metrics are for aggregates and must be bounded; traces and logs are for specifics. Putting an unbounded value in a label is the most common way to take down monitoring with a one-line change.",
+  "links": [
+   {
+    "title": "Prometheus: naming and labels",
+    "url": "https://prometheus.io/docs/practices/naming/"
+   },
+   {
+    "title": "Cardinality is key (Honeycomb)",
+    "url": "https://www.honeycomb.io/blog/observability-cardinality-and-dimensionality"
+   }
+  ],
+  "tags": [
+   "prometheus",
+   "monitoring",
+   "cost"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "trace-sampling",
+  "title": "Distributed Tracing and Sampling",
+  "category": "observability",
+  "one_liner": "Head sampling is cheap and throws away the traces you needed; tail sampling keeps them and costs more.",
+  "body_md": "**The mechanism.** A trace is a tree of spans sharing a trace id, propagated across service boundaries by a header (`traceparent`, per W3C Trace Context). Each span carries a start, a duration, a parent, and attributes. The value is causal: you see where a request's 900ms actually went, across ten services, instead of inferring it from ten separate latency graphs.\n\n**Head sampling.** Decide at the root, before you know anything, usually at a fixed probability. The decision must propagate so a trace is not half-collected. It is cheap and predictable \u2014 and it discards 99% of traces, including the errors and the slow ones, which are the only ones anyone looks at.\n\n**Tail sampling.** Buffer all spans of a trace in a collector, then decide once it is complete: keep everything with an error, everything over a latency threshold, a small random sample of the rest, plus everything touching a rare code path. You get the interesting traces *and* a statistical baseline. The cost is a stateful collector that must hold spans long enough for every service to report, with memory sized to your span rate and a timeout for traces that never complete.\n\n**The parts people get wrong.** Not propagating context through queues and async boundaries, so the trace stops at the broker. Creating a span per function call, which buries the signal. Putting unbounded values in span attributes \u2014 fine for traces, unlike metrics, but it still costs storage. And sampling *inconsistently* across services, which produces broken traces that look like missing instrumentation.\n\n**Takeaway.** Instrument boundaries and expensive operations, propagate context everywhere including async paths, and sample on the tail if you can afford the collector.",
+  "links": [
+   {
+    "title": "W3C Trace Context",
+    "url": "https://www.w3.org/TR/trace-context/"
+   },
+   {
+    "title": "OpenTelemetry: sampling",
+    "url": "https://opentelemetry.io/docs/concepts/sampling/"
+   }
+  ],
+  "tags": [
+   "opentelemetry",
+   "tracing",
+   "debugging"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "slo-error-budgets",
+  "title": "SLOs and Error Budgets",
+  "category": "reliability",
+  "one_liner": "A reliability target you are allowed to miss is a decision-making tool; 100% is not.",
+  "body_md": "**The mechanism.** An *SLI* is a measurement of user-visible behaviour \u2014 the proportion of requests served successfully under 300ms. An *SLO* is the target for it: 99.9% over 30 days. The *error budget* is the complement: 0.1% of requests, which over 30 days is about 43 minutes of total unavailability. Spend it however you like. Burn it all, and the policy is that feature work stops until you are back in budget.\n\n**Why the budget is the point.** It converts an argument about whether to ship into arithmetic. Plenty of budget left means you can take the risky deploy; budget exhausted means you cannot. It also makes the cost of reliability explicit: each extra nine multiplies engineering effort, and 100% is not a target but a refusal to make the trade \u2014 it forbids deploys, forbids experiments, and is in any case unachievable once you count your dependencies' SLAs.\n\n**Getting the SLI right.** Measure as close to the user as you can: at the load balancer or in the client, not inside the service where failed requests never arrive. Define \"good\" in user terms. Exclude nothing without writing down why. A 99.9% availability SLO measured only on requests that reached your handler is measuring the wrong thing, and it will look healthy during an outage.\n\n**Burn rate alerting.** Do not alert on \"SLO violated\" \u2014 by then it is over. Alert on *burn rate*: consuming budget 14x faster than sustainable over an hour is an urgent page; 3x over six hours is a ticket. Multi-window, multi-burn-rate alerts give you both fast detection and few false positives, and they replace most threshold alerts you currently have.\n\n**Takeaway.** Availability is a product decision with a number attached. The budget is what makes it one.",
+  "links": [
+   {
+    "title": "Google SRE Workbook: implementing SLOs",
+    "url": "https://sre.google/workbook/implementing-slos/"
+   },
+   {
+    "title": "Alerting on SLOs",
+    "url": "https://sre.google/workbook/alerting-on-slos/"
+   }
+  ],
+  "tags": [
+   "sre",
+   "slo",
+   "monitoring"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "merkle-trees",
+  "title": "Merkle Trees",
+  "category": "algorithms",
+  "one_liner": "A tree of hashes: one root fingerprint, and a short proof for any leaf.",
+  "body_md": "**The mechanism.** Hash each data block to form the leaves, then hash each pair of children to form their parent, repeatedly, up to a single root hash. Two properties follow. Any change to any block changes the root. And you can prove a specific block is in the tree by supplying `log n` sibling hashes \u2014 the verifier recomputes the path to the root and compares. That proof is small even for an enormous tree.\n\n**What it is used for.** *Efficient diffing*: two replicas compare roots; if they differ, they descend only into subtrees that disagree, so synchronising a mostly-identical dataset costs `log n` round trips rather than a full scan. Cassandra and DynamoDB anti-entropy repair work this way, as does `rsync`'s cousin, and ZFS scrub. *Inclusion proofs*: Certificate Transparency logs let a client verify a certificate is in the public log without downloading it. Blockchains use them so a light client can verify a transaction against a block header. *Integrity at rest*: ZFS and Btrfs hash every block into a tree rooted in the superblock, which is how they detect silent corruption.\n\n**Content addressing is the same idea.** Name a thing by the hash of its content, and identity becomes verifiable, deduplication becomes automatic, and caching becomes trivially safe because the name cannot refer to different bytes later. Git is a Merkle DAG \u2014 a commit hash covers the tree hash which covers every blob \u2014 which is precisely why history cannot be altered without every subsequent hash changing. IPFS, Nix, Bazel's action cache and every container registry rest on the same property.\n\n**Takeaway.** When you need to compare, verify, or deduplicate large data cheaply, hash it into a tree and compare roots.",
+  "links": [
+   {
+    "title": "Certificate Transparency: how logs work",
+    "url": "https://certificate.transparency.dev/howctworks/"
+   },
+   {
+    "title": "Git internals: objects",
+    "url": "https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"
+   }
+  ],
+  "tags": [
+   "hashing",
+   "git",
+   "integrity"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "quorum-reads-writes",
+  "title": "Quorums: Why R + W > N",
+  "category": "distributed systems",
+  "one_liner": "Overlap the read set and the write set and at least one node has the latest value.",
+  "body_md": "**The mechanism.** With `N` replicas, a write waits for `W` acknowledgements and a read queries `R` replicas. If `R + W > N`, the two sets must intersect in at least one node, so the read is guaranteed to *see* the latest acknowledged write \u2014 provided it can tell which value is latest, which needs a version. Cassandra's `QUORUM` is `floor(N/2) + 1` for both, which satisfies the inequality for any `N`.\n\n**The tuning dial.** `W = N, R = 1` gives fast reads and slow, fragile writes (any replica down blocks writes). `W = 1, R = N` is the reverse. `R = W = quorum` balances them and tolerates `floor((N-1)/2)` failures. Dropping below the inequality \u2014 `R = W = 1` \u2014 gives you the fastest possible operations and eventual consistency, which is a legitimate choice for some data and a disaster for the rest.\n\n**What quorums do not give you.** Not linearizability on their own: two concurrent writes to disjoint quorums can both succeed, and the system must resolve them (last-write-wins, vector clocks, or CRDTs). Not isolation, so read-modify-write cycles still race \u2014 you need compare-and-set or a lightweight transaction. And sloppy quorums with hinted handoff, which Dynamo-style systems use for availability, explicitly break the overlap guarantee: the write was acknowledged by `W` nodes, just not the *right* `W` nodes.\n\n**The operational trap.** A quorum of 2 from 3 replicas sounds safe until you place all three in one availability zone, or until a node is \"up\" but 40 seconds behind. Count failure domains, not nodes.\n\n**Takeaway.** `R + W > N` is a guarantee about *overlap*, not about correctness. You still need versioning to use the overlap, and a conflict policy for when you cannot.",
+  "links": [
+   {
+    "title": "Dynamo paper",
+    "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+   },
+   {
+    "title": "Cassandra: consistency levels",
+    "url": "https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html"
+   }
+  ],
+  "tags": [
+   "replication",
+   "consistency",
+   "cassandra"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "fencing-tokens",
+  "title": "Leases and Fencing Tokens",
+  "category": "distributed systems",
+  "one_liner": "A lock you can lose without noticing needs a token the storage layer will reject.",
+  "body_md": "**The mechanism.** A distributed lock is really a *lease*: it expires. A client that acquires it may be paused \u2014 by a GC pause, a VM migration, a slow disk, a network partition \u2014 for longer than the lease, during which the lock service hands it to someone else. The first client wakes up believing it still holds the lock and writes. Two writers, no error anywhere, corrupted data.\n\n**The fix is not a better lock.** No timeout tuning closes this, because the pause can always exceed the timeout. The fix is a *fencing token*: the lock service issues a monotonically increasing number with each grant, the client includes it in every write, and the **storage system** rejects any write carrying a token lower than the highest it has seen. The holder that woke up late is fenced out by the resource itself.\n\n**The consequence most people miss.** This means the resource must participate. A lock in front of a dumb blob store does not make writes safe; the store has to check the token. This is why `zxid` in ZooKeeper, `mod_revision` in etcd, and epoch numbers in Kafka's leader election all exist, and why HDFS's NameNode fencing is a real feature rather than an afterthought.\n\n**Related mechanics.** A lease needs renewal well before expiry, and a clean *abdication* path when renewal fails \u2014 the holder must stop work *before* the lease expires, not when it notices. Clock skew makes absolute-time leases unsafe; prefer durations measured locally. And \"Redlock\" style multi-node locking does not solve the pause problem either, which was the substance of the Kleppmann/Antirez exchange worth reading in full.\n\n**Takeaway.** If losing the lock silently would corrupt data, you need a token the storage layer enforces \u2014 not a lock, a fence.",
+  "links": [
+   {
+    "title": "How to do distributed locking (Kleppmann)",
+    "url": "https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html"
+   },
+   {
+    "title": "Chubby: a lock service",
+    "url": "https://research.google/pubs/the-chubby-lock-service-for-loosely-coupled-distributed-systems/"
+   }
+  ],
+  "tags": [
+   "locking",
+   "leases",
+   "correctness"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "exactly-once-illusion",
+  "title": "The Exactly-Once Illusion",
+  "category": "distributed systems",
+  "one_liner": "You cannot get exactly-once delivery. You can get at-least-once delivery plus idempotent processing, which is what people mean.",
+  "body_md": "**The mechanism of the impossibility.** A sender cannot distinguish \"the message was lost\" from \"the acknowledgement was lost\". It must choose: resend (at-least-once, duplicates possible) or not (at-most-once, loss possible). There is no third option, and adding more acknowledgements only moves the uncertainty to the last one \u2014 this is the two-generals problem, and it is a proof, not an engineering gap.\n\n**What \"exactly-once\" products actually sell.** Exactly-once *effects*, achieved by combining at-least-once delivery with deduplication at the consumer. Kafka's transactions give you atomic read-process-write *within Kafka*: the consumer offset commit and the output production land in one transaction, so a reprocessed batch does not double-emit. That is genuinely useful and genuinely not delivery semantics. The moment your side effect leaves the system \u2014 charging a card, sending an email, writing to an external database \u2014 you are back to needing idempotency.\n\n**How to actually get the effect.** Make the operation naturally idempotent (setting a value rather than incrementing it). Or dedupe on a stable message id, recorded *in the same transaction* as the side effect \u2014 that is the inbox pattern, and the transactional coupling is the whole trick. Or make the operation commutative and associative so order and repetition do not matter, which is the CRDT answer.\n\n**The accounting corollary.** Counters are the hard case: `balance = balance + 10` applied twice is wrong, and applied zero times is also wrong. Model it as an append-only ledger of uniquely-identified entries and compute the balance, and duplicates become detectable rather than destructive.\n\n**Takeaway.** Stop trying to deliver exactly once. Make processing idempotent, and the delivery guarantee stops mattering.",
+  "links": [
+   {
+    "title": "You cannot have exactly-once delivery",
+    "url": "https://bravenewgeek.com/you-cannot-have-exactly-once-delivery/"
+   },
+   {
+    "title": "Kafka: exactly-once semantics",
+    "url": "https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/"
+   }
+  ],
+  "tags": [
+   "messaging",
+   "kafka",
+   "idempotency"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "zero-copy",
+  "title": "Zero-Copy I/O",
+  "category": "performance",
+  "one_liner": "Every copy between kernel and user space is pure overhead when you are only moving bytes.",
+  "body_md": "**The mechanism.** Serving a file the naive way costs four copies and four context switches: disk to page cache (DMA), page cache to your user buffer (`read`), user buffer back to a socket buffer (`write`), socket buffer to the NIC (DMA). If your process never looks at the bytes, two of those copies and two switches are waste. `sendfile()` transfers directly from the page cache to the socket inside the kernel. With scatter-gather DMA support the data never leaves the page cache at all \u2014 the NIC reads from it directly, leaving true zero copies.\n\n**Where it is already working for you.** Kafka's throughput story is substantially this: `sendfile` from the log segment straight to the consumer socket, which is also why *any* feature requiring the broker to inspect or transform messages costs so much. Nginx's `sendfile on`. `splice()` and `tee()` for pipe-to-pipe movement. `io_uring` with registered buffers for a more general version. And `mmap` for read paths, with the caveat that page faults are synchronous and unpredictable.\n\n**When it does not apply.** The moment you need to touch the bytes \u2014 TLS encryption, compression, parsing, transformation \u2014 you need them in a buffer you can address. Kernel TLS (kTLS) exists to claw back the TLS case specifically. Note that this is also why enabling TLS changed your throughput profile more than expected.\n\n**The user-space analogue.** Within your own code, the same principle is \"do not copy to parse\": slices and views over one buffer rather than substrings, `bytes.Buffer` reuse, Netty's `CompositeByteBuf`, Arrow's columnar layout for zero-copy IPC, and `Cow<'_, str>` in Rust. The cheapest copy is the one you do not make.\n\n**Takeaway.** When a system's job is to move bytes rather than understand them, copies are the budget. Count them.",
+  "links": [
+   {
+    "title": "Efficient data transfer through zero copy",
+    "url": "https://developer.ibm.com/articles/j-zerocopy/"
+   },
+   {
+    "title": "Kafka: persistence and efficiency",
+    "url": "https://kafka.apache.org/documentation/#design_filesystem"
+   }
+  ],
+  "tags": [
+   "io",
+   "kernel",
+   "kafka"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "io-models",
+  "title": "Blocking, epoll, and io_uring",
+  "category": "operating systems",
+  "one_liner": "Three answers to 'how do I wait for ten thousand sockets', each solving the previous one's bottleneck.",
+  "body_md": "**Thread-per-connection.** A blocking `read()` per connection, one thread each. Simple and genuinely fast at low connection counts, but each thread costs a stack and a scheduling slot, and the context-switch cost dominates in the thousands. This is the C10K problem.\n\n**Readiness notification: select, poll, epoll, kqueue.** Register many file descriptors with the kernel and ask which are *ready*, then do non-blocking reads on those. `select` and `poll` are O(n) per call because you resubmit the whole set every time; `epoll` (Linux) and `kqueue` (BSD/macOS) keep the set in the kernel and return only the ready ones, making it O(ready). This is the foundation of nginx, libuv/Node, Netty, and Go's netpoller. Its limit: readiness tells you an operation *would not block*, so you still pay two syscalls per operation, and it never worked properly for regular file I/O \u2014 which is why \"async\" runtimes historically ran file reads on a thread pool.\n\n**Completion notification: io_uring (and IOCP).** You submit *operations* to a shared ring buffer and collect completions from another, with no syscall required in the common case. It batches, supports real asynchronous file I/O, handles `open`/`close`/`accept`/`statx`, and can chain dependent operations so a read-then-write needs no round trip to user space. The gains are largest for small, numerous operations \u2014 exactly where syscall overhead was the cost. The downsides are real: a large kernel attack surface (several distributions restrict it), a steeper API, and a kernel version floor.\n\n**Takeaway.** Readiness models ask \"can I go now?\"; completion models say \"do this and tell me when it is done\". That difference is why io_uring removes a syscall per operation and finally makes file I/O asynchronous.",
+  "links": [
+   {
+    "title": "The C10K problem",
+    "url": "http://www.kegel.com/c10k.html"
+   },
+   {
+    "title": "Efficient IO with io_uring",
+    "url": "https://kernel.dk/io_uring.pdf"
+   }
+  ],
+  "tags": [
+   "linux",
+   "networking",
+   "syscalls"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "data-oriented-design",
+  "title": "Data-Oriented Design",
+  "category": "performance",
+  "one_liner": "The cache, not the CPU, is the constraint \u2014 so lay out data the way you traverse it.",
+  "body_md": "**The mechanism.** A main-memory access costs on the order of 100ns; an L1 hit costs about 1ns. A modern core can retire several instructions per cycle, so a cache miss is hundreds of wasted instruction slots. Performance is therefore mostly about memory access patterns, and a layout that matches your traversal order beats a cleverer algorithm on the wrong layout.\n\n**Array of structs vs struct of arrays.** `Particle[]` with position, velocity, colour and mass interleaved means a loop that only updates positions still drags every other field through cache \u2014 you might use 12 of every 64 bytes fetched. Splitting into parallel arrays (`float[] x, y, z`) means every byte fetched is used, and the loop vectorises. This is the single highest-leverage transformation in hot loops, and it is why ECS architectures in game engines and columnar formats in analytics databases look the way they do.\n\n**The companion techniques.** Sort data to make branches predictable \u2014 a mispredicted branch costs 15\u201320 cycles, and a sorted array can make the same loop several times faster with no algorithmic change. Replace pointer-chasing structures with indices into contiguous arrays (a linked list is a cache miss per node). Batch by type so the branch is outside the loop rather than inside it. Prefer `Vec<T>` over `Vec<Box<T>>`. Pack hot fields together and move cold ones out of the struct.\n\n**The discipline it implies.** Measure before and after, with cache-miss counters (`perf stat -e cache-misses,LLC-load-misses`) rather than intuition, because the wins are large and the predictions are unreliable. And apply it only to hot paths \u2014 this style trades readability for throughput, and that trade is wrong almost everywhere.\n\n**Takeaway.** Ask what the loop touches, then make exactly that contiguous.",
+  "links": [
+   {
+    "title": "Data-oriented design (Richard Fabian)",
+    "url": "https://www.dataorienteddesign.com/dodbook/"
+   },
+   {
+    "title": "Latency numbers every programmer should know",
+    "url": "https://colin-scott.github.io/personal_website/research/interactive_latency.html"
+   }
+  ],
+  "tags": [
+   "cpu caches",
+   "optimization",
+   "memory layout"
+  ],
+  "difficulty": "advanced"
+ },
+ {
+  "slug": "canary-deploys",
+  "title": "Canary and Blue-Green Deploys",
+  "category": "deployment",
+  "one_liner": "Two different bets: blue-green swaps everything at once, a canary risks a small slice.",
+  "body_md": "**Blue-green.** Run two identical environments. Deploy to the idle one, verify it, then switch all traffic over at the load balancer. Rollback is another switch, so it is fast and complete. The costs: double the infrastructure during the window, no gradual exposure (a bug that passes smoke tests hits 100% of users instantly), and database schema compatibility becomes mandatory because both versions may be live across the cutover \u2014 see expand/contract.\n\n**Canary.** Send a small fraction \u2014 1%, then 5%, then 25% \u2014 to the new version while watching metrics, and promote or roll back based on what you see. You risk only that fraction, and you get real production signal that no staging environment can give you. The costs: both versions run simultaneously for a long time, so they must tolerate each other's data and messages; and you need enough traffic for 1% to be statistically meaningful within a useful time window.\n\n**What makes a canary work rather than theatre.** Automated analysis comparing canary against a *control group running the old version on fresh instances* \u2014 not against yesterday's baseline, because that conflates the deploy with time-of-day effects. Clear promote/abort criteria defined before you start (error rate, latency percentiles, saturation, plus a couple of business metrics). Sticky routing so a user does not flip between versions mid-session. And a bake time long enough to catch slow leaks: memory growth and connection exhaustion do not show up in five minutes.\n\n**The composition that works.** Deploy dark (new code, feature off), canary the rollout, then ramp the *feature flag* separately. Separating \"new binary is running\" from \"new behaviour is on\" means a bad feature does not require a rollback, and that is the single biggest reduction in deploy risk available.\n\n**Takeaway.** Blue-green buys instant rollback; canary buys early detection. Flags let you have both and ramp behaviour independently of code.",
+  "links": [
+   {
+    "title": "Fowler: BlueGreenDeployment",
+    "url": "https://martinfowler.com/bliki/BlueGreenDeployment.html"
+   },
+   {
+    "title": "Automated canary analysis (Netflix Kayenta)",
+    "url": "https://netflixtechblog.com/automated-canary-analysis-at-netflix-with-kayenta-3260bc7acc69"
+   }
+  ],
+  "tags": [
+   "ci cd",
+   "release",
+   "feature flags"
+  ],
+  "difficulty": "intermediate"
+ },
+ {
+  "slug": "strangler-fig",
+  "title": "Strangler Fig",
+  "category": "architecture",
+  "one_liner": "Replace a legacy system by intercepting its traffic one route at a time, never by rewriting it.",
+  "body_md": "**The mechanism.** Put a facade \u2014 a proxy, gateway, or router \u2014 in front of the legacy system so all traffic flows through something you control. Implement one capability in the new system and change the facade to route that path to it. Repeat. The legacy system shrinks as the new one grows, and eventually nothing routes to it and you delete it. Named for the fig that grows around a host tree until the tree is gone.\n\n**Why the alternative fails.** The big-bang rewrite requires you to reach feature parity with years of accumulated, undocumented behaviour before you can ship anything \u2014 during which the old system keeps changing, so the target moves. You carry all the risk to one cutover date, and you cannot deliver value until it arrives. The strangler delivers continuously and lets you stop halfway with something coherent, which is the real option value.\n\n**The hard part is data, not code.** Routing requests is easy; two systems owning overlapping state is not. Options, roughly in order of preference: give the new service its own tables and keep the legacy read-only for that data; replicate one way with CDC and accept defined lag; or write to both during a transition with reconciliation, which is the expensive one and should be time-boxed. Decide the direction of truth per entity, in writing, and make it visible in the code.\n\n**The techniques that make it practical.** Branch-by-abstraction inside the old codebase for logic you cannot route around. Dark launching: send real traffic to the new implementation, compare its output against the old one, and discard it \u2014 this finds behaviour differences before any user sees them. Verify-and-fallback for riskier paths.\n\n**The failure mode to watch.** Stalling at 70%. Whatever remains is the gnarliest part, the funding dries up, and you now operate two systems forever. Budget for the deletion explicitly and treat the old system's removal as the deliverable.\n\n**Takeaway.** Incremental replacement behind a facade, with per-entity data ownership decided up front and a commitment to finish.",
+  "links": [
+   {
+    "title": "Fowler: StranglerFigApplication",
+    "url": "https://martinfowler.com/bliki/StranglerFigApplication.html"
+   },
+   {
+    "title": "Branch by abstraction",
+    "url": "https://martinfowler.com/bliki/BranchByAbstraction.html"
+   }
+  ],
+  "tags": [
+   "legacy",
+   "migration",
+   "patterns"
+  ],
+  "difficulty": "intermediate"
+ }
+]

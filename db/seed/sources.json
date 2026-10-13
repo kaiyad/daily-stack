@@ -1,0 +1,1345 @@
+[
+ {
+  "slug": "hn",
+  "name": "Hacker News",
+  "kind": "hn",
+  "feed_url": null,
+  "homepage": "https://news.ycombinator.com",
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "aggregator"
+  ]
+ },
+ {
+  "slug": "lobsters",
+  "name": "Lobsters",
+  "kind": "lobsters",
+  "feed_url": "https://lobste.rs/hottest.json",
+  "homepage": "https://lobste.rs",
+  "trust_weight": 1.1,
+  "slot_hint": null,
+  "tags": [
+   "aggregator"
+  ]
+ },
+ {
+  "slug": "github-trending",
+  "name": "GitHub",
+  "kind": "github",
+  "feed_url": null,
+  "homepage": "https://github.com",
+  "trust_weight": 1.0,
+  "slot_hint": "repos",
+  "tags": [
+   "repos"
+  ]
+ },
+ {
+  "slug": "arxiv-cs",
+  "name": "arXiv CS",
+  "kind": "arxiv",
+  "feed_url": null,
+  "homepage": "https://arxiv.org",
+  "trust_weight": 1.8,
+  "slot_hint": "deep",
+  "tags": [
+   "paper"
+  ]
+ },
+ {
+  "slug": "reddit-programming",
+  "name": "r/programming",
+  "kind": "reddit",
+  "feed_url": "programming",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-experienceddevs",
+  "name": "r/ExperiencedDevs",
+  "kind": "reddit",
+  "feed_url": "ExperiencedDevs",
+  "homepage": null,
+  "trust_weight": 1.2,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-devops",
+  "name": "r/devops",
+  "kind": "reddit",
+  "feed_url": "devops",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-rust",
+  "name": "r/rust",
+  "kind": "reddit",
+  "feed_url": "rust",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-golang",
+  "name": "r/golang",
+  "kind": "reddit",
+  "feed_url": "golang",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-python",
+  "name": "r/Python",
+  "kind": "reddit",
+  "feed_url": "Python",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-javascript",
+  "name": "r/javascript",
+  "kind": "reddit",
+  "feed_url": "javascript",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-kubernetes",
+  "name": "r/kubernetes",
+  "kind": "reddit",
+  "feed_url": "kubernetes",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-databases",
+  "name": "r/databases",
+  "kind": "reddit",
+  "feed_url": "databases",
+  "homepage": null,
+  "trust_weight": 1.1,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-cpp",
+  "name": "r/cpp",
+  "kind": "reddit",
+  "feed_url": "cpp",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-java",
+  "name": "r/java",
+  "kind": "reddit",
+  "feed_url": "java",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-dotnet",
+  "name": "r/dotnet",
+  "kind": "reddit",
+  "feed_url": "dotnet",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-machinelearning",
+  "name": "r/MachineLearning",
+  "kind": "reddit",
+  "feed_url": "MachineLearning",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-localllama",
+  "name": "r/LocalLLaMA",
+  "kind": "reddit",
+  "feed_url": "LocalLLaMA",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-softwarearchitecture",
+  "name": "r/softwarearchitecture",
+  "kind": "reddit",
+  "feed_url": "softwarearchitecture",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "reddit-compsci",
+  "name": "r/compsci",
+  "kind": "reddit",
+  "feed_url": "compsci",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": null,
+  "tags": [
+   "reddit"
+  ],
+  "enabled": false
+ },
+ {
+  "slug": "danluu",
+  "name": "Dan Luu",
+  "kind": "rss",
+  "feed_url": "https://danluu.com/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "aphyr",
+  "name": "Aphyr (Kyle Kingsbury)",
+  "kind": "rss",
+  "feed_url": "https://aphyr.com/posts.atom",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "jvns",
+  "name": "Julia Evans",
+  "kind": "rss",
+  "feed_url": "https://jvns.ca/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "brendangregg",
+  "name": "Brendan Gregg",
+  "kind": "rss",
+  "feed_url": "https://www.brendangregg.com/blog/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "simonwillison",
+  "name": "Simon Willison",
+  "kind": "rss",
+  "feed_url": "https://simonwillison.net/atom/everything/",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "martinfowler",
+  "name": "Martin Fowler",
+  "kind": "rss",
+  "feed_url": "https://martinfowler.com/feed.atom",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "rachelbythebay",
+  "name": "rachelbythebay",
+  "kind": "rss",
+  "feed_url": "https://rachelbythebay.com/w/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "nelhage",
+  "name": "Nelson Elhage",
+  "kind": "rss",
+  "feed_url": "https://blog.nelhage.com/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "tonsky",
+  "name": "Nikita Prokopov",
+  "kind": "rss",
+  "feed_url": "https://tonsky.me/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "eli-bendersky",
+  "name": "Eli Bendersky",
+  "kind": "rss",
+  "feed_url": "https://eli.thegreenplace.net/feeds/all.atom.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "lemire",
+  "name": "Daniel Lemire",
+  "kind": "rss",
+  "feed_url": "https://lemire.me/blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "antirez",
+  "name": "antirez",
+  "kind": "rss",
+  "feed_url": "https://antirez.com/rss",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "surfingcomplexity",
+  "name": "Surfing Complexity",
+  "kind": "rss",
+  "feed_url": "https://surfingcomplexity.blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "overreacted",
+  "name": "Dan Abramov",
+  "kind": "rss",
+  "feed_url": "https://overreacted.io/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "joshwcomeau",
+  "name": "Josh W. Comeau",
+  "kind": "rss",
+  "feed_url": "https://www.joshwcomeau.com/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "codinghorror",
+  "name": "Coding Horror",
+  "kind": "rss",
+  "feed_url": "https://blog.codinghorror.com/rss/",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "kentcdodds",
+  "name": "Kent C. Dodds",
+  "kind": "rss",
+  "feed_url": "https://kentcdodds.com/blog/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "hillelwayne",
+  "name": "Hillel Wayne",
+  "kind": "rss",
+  "feed_url": "https://buttondown.com/hillelwayne/rss",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "mattrickard",
+  "name": "Matt Rickard",
+  "kind": "rss",
+  "feed_url": "https://matt-rickard.com/rss",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "fasterthanlime",
+  "name": "fasterthanli.me",
+  "kind": "rss",
+  "feed_url": "https://fasterthanli.me/index.xml",
+  "homepage": null,
+  "trust_weight": 1.6,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "netflix-tech",
+  "name": "Netflix Technology Blog",
+  "kind": "rss",
+  "feed_url": "https://netflixtechblog.com/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "stripe-blog",
+  "name": "Stripe",
+  "kind": "rss",
+  "feed_url": "https://stripe.com/blog/feed.rss",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "cloudflare-blog",
+  "name": "Cloudflare",
+  "kind": "rss",
+  "feed_url": "https://blog.cloudflare.com/rss/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "meta-eng",
+  "name": "Engineering at Meta",
+  "kind": "rss",
+  "feed_url": "https://engineering.fb.com/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "slack-eng",
+  "name": "Slack Engineering",
+  "kind": "rss",
+  "feed_url": "https://slack.engineering/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "dropbox-tech",
+  "name": "Dropbox Tech",
+  "kind": "rss",
+  "feed_url": "https://dropbox.tech/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "shopify-eng",
+  "name": "Shopify Engineering",
+  "kind": "rss",
+  "feed_url": "https://shopify.engineering/blog.atom",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "airbnb-eng",
+  "name": "Airbnb Engineering",
+  "kind": "rss",
+  "feed_url": "https://medium.com/airbnb-engineering/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "spotify-eng",
+  "name": "Spotify Engineering",
+  "kind": "rss",
+  "feed_url": "https://engineering.atspotify.com/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "pinterest-eng",
+  "name": "Pinterest Engineering",
+  "kind": "rss",
+  "feed_url": "https://medium.com/pinterest-engineering/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "lyft-eng",
+  "name": "Lyft Engineering",
+  "kind": "rss",
+  "feed_url": "https://eng.lyft.com/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "instacart-eng",
+  "name": "Instacart Engineering",
+  "kind": "rss",
+  "feed_url": "https://tech.instacart.com/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "discord-eng",
+  "name": "Discord Engineering",
+  "kind": "rss",
+  "feed_url": "https://discord.com/blog/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "gitlab-blog",
+  "name": "GitLab",
+  "kind": "rss",
+  "feed_url": "https://about.gitlab.com/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "github-blog",
+  "name": "The GitHub Blog",
+  "kind": "rss",
+  "feed_url": "https://github.blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "jetbrains-blog",
+  "name": "JetBrains",
+  "kind": "rss",
+  "feed_url": "https://blog.jetbrains.com/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "stackoverflow-blog",
+  "name": "Stack Overflow Blog",
+  "kind": "rss",
+  "feed_url": "https://stackoverflow.blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "canva-eng",
+  "name": "Canva Engineering",
+  "kind": "rss",
+  "feed_url": "https://www.canva.dev/blog/engineering/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "engineering"
+  ]
+ },
+ {
+  "slug": "aws-news",
+  "name": "AWS News Blog",
+  "kind": "rss",
+  "feed_url": "https://aws.amazon.com/blogs/aws/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "aws-whatsnew",
+  "name": "AWS What's New",
+  "kind": "rss",
+  "feed_url": "https://aws.amazon.com/about-aws/whats-new/recent/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "gcp-blog",
+  "name": "Google Cloud Blog",
+  "kind": "rss",
+  "feed_url": "https://cloudblog.withgoogle.com/rss/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "gcp-release-notes",
+  "name": "Google Cloud Release Notes",
+  "kind": "rss",
+  "feed_url": "https://cloud.google.com/feeds/gcp-release-notes.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "azure-blog",
+  "name": "Azure Blog",
+  "kind": "rss",
+  "feed_url": "https://azure.microsoft.com/en-us/blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "azure-updates",
+  "name": "Azure Updates",
+  "kind": "rss",
+  "feed_url": "https://www.microsoft.com/releasecommunications/api/v2/azure/rss",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "cloudflare-changelog",
+  "name": "Cloudflare Changelog",
+  "kind": "rss",
+  "feed_url": "https://developers.cloudflare.com/changelog/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "github-changelog",
+  "name": "GitHub Changelog",
+  "kind": "rss",
+  "feed_url": "https://github.blog/changelog/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "hashicorp-blog",
+  "name": "HashiCorp",
+  "kind": "rss",
+  "feed_url": "https://www.hashicorp.com/blog/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "docker-blog",
+  "name": "Docker",
+  "kind": "rss",
+  "feed_url": "https://www.docker.com/blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "kubernetes-blog",
+  "name": "Kubernetes",
+  "kind": "rss",
+  "feed_url": "https://kubernetes.io/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "vercel-blog",
+  "name": "Vercel",
+  "kind": "rss",
+  "feed_url": "https://vercel.com/atom",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "fly-io",
+  "name": "Fly.io",
+  "kind": "rss",
+  "feed_url": "https://fly.io/blog/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "reads",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "supabase-blog",
+  "name": "Supabase",
+  "kind": "rss",
+  "feed_url": "https://supabase.com/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "duckdb",
+  "name": "DuckDB",
+  "kind": "rss",
+  "feed_url": "https://duckdb.org/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "planet-postgresql",
+  "name": "Planet PostgreSQL",
+  "kind": "rss",
+  "feed_url": "https://planet.postgresql.org/rss20.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "reads",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "grafana-blog",
+  "name": "Grafana Labs",
+  "kind": "rss",
+  "feed_url": "https://grafana.com/blog/index.xml",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "redis-blog",
+  "name": "Redis",
+  "kind": "rss",
+  "feed_url": "https://redis.io/blog/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "shipped",
+  "tags": [
+   "cloud",
+   "infra"
+  ]
+ },
+ {
+  "slug": "rust-blog",
+  "name": "Rust Blog",
+  "kind": "rss",
+  "feed_url": "https://blog.rust-lang.org/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "go-blog",
+  "name": "Go Blog",
+  "kind": "rss",
+  "feed_url": "https://go.dev/blog/feed.atom",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "python-insider",
+  "name": "Python Insider",
+  "kind": "rss",
+  "feed_url": "https://blog.python.org/feeds/posts/default",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "node-blog",
+  "name": "Node.js",
+  "kind": "rss",
+  "feed_url": "https://nodejs.org/en/feed/blog.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "deno-blog",
+  "name": "Deno",
+  "kind": "rss",
+  "feed_url": "https://deno.com/feed",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "bun-blog",
+  "name": "Bun",
+  "kind": "rss",
+  "feed_url": "https://bun.sh/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "typescript-devblog",
+  "name": "TypeScript Dev Blog",
+  "kind": "rss",
+  "feed_url": "https://devblogs.microsoft.com/typescript/feed/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "dotnet-devblog",
+  "name": ".NET Blog",
+  "kind": "rss",
+  "feed_url": "https://devblogs.microsoft.com/dotnet/feed/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "inside-java",
+  "name": "Inside Java",
+  "kind": "rss",
+  "feed_url": "https://inside.java/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "v8-blog",
+  "name": "V8",
+  "kind": "rss",
+  "feed_url": "https://v8.dev/blog.atom",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "chrome-devblog",
+  "name": "Chrome for Developers",
+  "kind": "rss",
+  "feed_url": "https://developer.chrome.com/static/blog/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "mozilla-hacks",
+  "name": "Mozilla Hacks",
+  "kind": "rss",
+  "feed_url": "https://hacks.mozilla.org/feed/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "webkit-blog",
+  "name": "WebKit",
+  "kind": "rss",
+  "feed_url": "https://webkit.org/feed/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "swift-blog",
+  "name": "Swift.org",
+  "kind": "rss",
+  "feed_url": "https://www.swift.org/atom.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "kotlin-blog",
+  "name": "Kotlin",
+  "kind": "rss",
+  "feed_url": "https://blog.jetbrains.com/kotlin/feed/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "php-news",
+  "name": "PHP",
+  "kind": "rss",
+  "feed_url": "https://www.php.net/feed.atom",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "ruby-news",
+  "name": "Ruby",
+  "kind": "rss",
+  "feed_url": "https://www.ruby-lang.org/en/feeds/news.rss",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "zig-news",
+  "name": "Zig",
+  "kind": "rss",
+  "feed_url": "https://ziglang.org/news/index.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "language"
+  ]
+ },
+ {
+  "slug": "openai-news",
+  "name": "OpenAI",
+  "kind": "rss",
+  "feed_url": "https://openai.com/news/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": null,
+  "tags": [
+   "ai"
+  ]
+ },
+ {
+  "slug": "huggingface-blog",
+  "name": "Hugging Face",
+  "kind": "rss",
+  "feed_url": "https://huggingface.co/blog/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": null,
+  "tags": [
+   "ai"
+  ]
+ },
+ {
+  "slug": "google-research",
+  "name": "Google Research",
+  "kind": "rss",
+  "feed_url": "https://research.google/blog/rss/",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": null,
+  "tags": [
+   "ai"
+  ]
+ },
+ {
+  "slug": "pytorch-blog",
+  "name": "PyTorch",
+  "kind": "rss",
+  "feed_url": "https://pytorch.org/blog/feed.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": null,
+  "tags": [
+   "ai"
+  ]
+ },
+ {
+  "slug": "deepmind-blog",
+  "name": "Google DeepMind",
+  "kind": "rss",
+  "feed_url": "https://deepmind.google/blog/rss.xml",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": null,
+  "tags": [
+   "ai"
+  ]
+ },
+ {
+  "slug": "infoq",
+  "name": "InfoQ",
+  "kind": "rss",
+  "feed_url": "https://feed.infoq.com/",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": "reads",
+  "tags": [
+   "press"
+  ]
+ },
+ {
+  "slug": "thenewstack",
+  "name": "The New Stack",
+  "kind": "rss",
+  "feed_url": "https://thenewstack.io/feed/",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": "reads",
+  "tags": [
+   "press"
+  ]
+ },
+ {
+  "slug": "lwn",
+  "name": "LWN.net",
+  "kind": "rss",
+  "feed_url": "https://lwn.net/headlines/rss",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "reads",
+  "tags": [
+   "press"
+  ]
+ },
+ {
+  "slug": "phoronix",
+  "name": "Phoronix",
+  "kind": "rss",
+  "feed_url": "https://www.phoronix.com/rss.php",
+  "homepage": null,
+  "trust_weight": 0.9,
+  "slot_hint": "reads",
+  "tags": [
+   "press"
+  ]
+ },
+ {
+  "slug": "pragmatic-engineer",
+  "name": "The Pragmatic Engineer",
+  "kind": "rss",
+  "feed_url": "https://newsletter.pragmaticengineer.com/feed",
+  "homepage": null,
+  "trust_weight": 1.4,
+  "slot_hint": "reads",
+  "tags": [
+   "press"
+  ]
+ },
+ {
+  "slug": "all-things-distributed",
+  "name": "All Things Distributed (Werner Vogels)",
+  "kind": "rss",
+  "feed_url": "https://www.allthingsdistributed.com/index.xml",
+  "homepage": null,
+  "trust_weight": 1.5,
+  "slot_hint": "reads",
+  "tags": [
+   "blog",
+   "distributed systems"
+  ]
+ },
+ {
+  "slug": "register-spill",
+  "name": "Register Spill (Thorsten Ball)",
+  "kind": "rss",
+  "feed_url": "https://registerspill.thorstenball.com/feed",
+  "homepage": null,
+  "trust_weight": 1.5,
+  "slot_hint": "reads",
+  "tags": [
+   "blog"
+  ]
+ },
+ {
+  "slug": "scylladb",
+  "name": "ScyllaDB",
+  "kind": "rss",
+  "feed_url": "https://www.scylladb.com/feed/",
+  "homepage": null,
+  "trust_weight": 1.15,
+  "slot_hint": "reads",
+  "tags": [
+   "databases"
+  ]
+ },
+ {
+  "slug": "bytebytego",
+  "name": "ByteByteGo",
+  "kind": "rss",
+  "feed_url": "https://blog.bytebytego.com/feed",
+  "homepage": null,
+  "trust_weight": 1.0,
+  "slot_hint": "reads",
+  "tags": [
+   "system design"
+  ]
+ },
+ {
+  "slug": "postgresql-news",
+  "name": "PostgreSQL News",
+  "kind": "rss",
+  "feed_url": "https://www.postgresql.org/news.rss",
+  "homepage": null,
+  "trust_weight": 1.3,
+  "slot_hint": "shipped",
+  "tags": [
+   "postgres"
+  ]
+ }
+]

@@ -1,0 +1,55 @@
+name: daily edition
+
+on:
+  schedule:
+    # 00:30 UTC = 06:00 the default EDITION_TZ (Asia/Kolkata). GitHub runs
+    # scheduled jobs late under load, which is fine: the edition window closed
+    # at the freeze hour regardless of when this starts.
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-edition
+  cancel-in-progress: false
+
+jobs:
+  build-edition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+      REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+      # The built-in token lifts the GitHub search API from 60 to 1000 req/hour.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      EDITION_TZ: ${{ vars.EDITION_TZ || 'Asia/Kolkata' }}
+      EDITION_FREEZE_HOUR: ${{ vars.EDITION_FREEZE_HOUR || '6' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply any new migrations
+        run: npm run db:migrate
+
+      - name: Sync sources and concepts
+        run: npm run db:seed
+
+      - name: Ingest, cut the edition, freeze it
+        run: npm run daily
+
+      - name: Prune raw items past the retention window
+        run: npm run prune
+
+      - name: Report
+        if: always()
+        run: |
+          echo "### Edition $(date -u +%F)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
