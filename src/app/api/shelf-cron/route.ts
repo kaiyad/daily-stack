@@ -3,12 +3,13 @@ import { currentShelfDate } from "../../../lib/shelf";
 import { env } from "../../../lib/env";
 
 export const dynamic = "force-dynamic";
-// Two model calls, one of them searching the web and one writing four thousand
-// words: this runs for minutes, not seconds. Vercel's Hobby plan kills a
-// function at 60s, so .github/workflows/weekly-shelf.yml is the path that
-// works; this route is for platforms with a longer ceiling and for triggering
-// a rebuild by hand.
-export const maxDuration = 800;
+// 300 is the ceiling the Hobby plan will deploy - a larger value fails the
+// build, not just the request. Two model calls, one searching the web and one
+// writing four thousand words, can outrun even that, which is why
+// .github/workflows/weekly-shelf.yml is the path that actually works. This
+// route is for platforms with a longer ceiling, for a `written` piece (no
+// model call, so it finishes in milliseconds), and for triggering by hand.
+export const maxDuration = 300;
 
 /** The weekly job, as an HTTP endpoint for a platform scheduler. */
 export async function GET(request: Request): Promise<Response> {
