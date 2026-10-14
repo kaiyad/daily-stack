@@ -1,0 +1,60 @@
+name: weekly shelf
+
+on:
+  schedule:
+    # 15:30 UTC Friday = 21:00 Friday in the default EDITION_TZ (Asia/Kolkata),
+    # which is SHELF_PUBLISH_HOUR. GitHub starts scheduled jobs late under
+    # load; that only delays the piece, it never moves it to another Friday.
+    - cron: "30 15 * * 5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Friday to build (YYYY-MM-DD). Blank means the current one."
+        required: false
+
+concurrency:
+  group: weekly-shelf
+  cancel-in-progress: false
+
+jobs:
+  build-shelf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      EDITION_TZ: ${{ vars.EDITION_TZ || 'Asia/Kolkata' }}
+      SHELF_PUBLISH_HOUR: ${{ vars.SHELF_PUBLISH_HOUR || '21' }}
+      SHELF_MODEL: ${{ vars.SHELF_MODEL || 'claude-opus-5-5' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply any new migrations
+        run: npm run db:migrate
+
+      - name: Sync the book catalogue
+        run: npm run books:seed
+
+      - name: Keep a quarter of the schedule pinned ahead
+        run: npm run shelf:schedule 13
+
+      - name: Report what the next quarter will publish, and how
+        run: npm run shelf:status 13
+
+      - name: Write this week's piece and publish it
+        run: npm run shelf -- --freeze ${{ inputs.date && format('--date {0}', inputs.date) || '' }}
+
+      - name: Report
+        if: always()
+        run: |
+          echo "### Weekly Shelf $(date -u +%F)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

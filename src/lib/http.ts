@@ -1,7 +1,13 @@
 const UA =
   "daily-stack/0.1 (+https://github.com/; personal software news aggregator)";
 
-type Opts = { timeoutMs?: number; retries?: number; headers?: Record<string, string> };
+type Opts = {
+  timeoutMs?: number;
+  retries?: number;
+  headers?: Record<string, string>;
+  method?: string;
+  body?: string;
+};
 
 export async function fetchRaw(url: string, opts: Opts = {}): Promise<Response> {
   const { timeoutMs = 20_000, retries = 2, headers = {} } = opts;
@@ -13,6 +19,8 @@ export async function fetchRaw(url: string, opts: Opts = {}): Promise<Response> 
     try {
       const res = await fetch(url, {
         signal: ctrl.signal,
+        method: opts.method,
+        body: opts.body,
         headers: { "user-agent": UA, accept: "*/*", ...headers },
         redirect: "follow",
       });

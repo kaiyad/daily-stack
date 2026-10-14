@@ -17,6 +17,10 @@
     "edition": "tsx src/cli/edition.ts",
     "concepts:schedule": "tsx src/cli/schedule-concepts.ts",
     "daily": "tsx src/cli/daily.ts",
+    "books:seed": "tsx src/cli/seed-books.ts",
+    "shelf:schedule": "tsx src/cli/schedule-books.ts",
+    "shelf": "tsx src/cli/shelf.ts",
+    "shelf:status": "tsx src/cli/shelf-status.ts",
     "prune": "tsx src/cli/prune.ts"
   },
   "dependencies": {

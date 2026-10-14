@@ -22,6 +22,15 @@ export type PublishedUnit = {
 
 export type DueRevision = PublishedUnit & { intervalDays: number; elapsedDays: number };
 
+/**
+ * Postgres `undefined_table`. The web app and the schema deploy separately -
+ * Vercel builds on push, migrations run in the daily job - so new code can
+ * briefly meet the old schema, and a page must survive that.
+ */
+export function isMissingTable(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "42P01";
+}
+
 function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }

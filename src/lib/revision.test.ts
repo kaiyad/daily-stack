@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { addDays } from "./dates";
-import { dueRevisions, type PublishedUnit } from "./revision";
+import { dueRevisions, isMissingTable, type PublishedUnit } from "./revision";
 
 const unit = (slug: string, originDate: string): PublishedUnit => ({
   conceptId: Number(slug.replace(/\D/g, "")) || 1,
@@ -72,4 +72,11 @@ test("shortest interval first, and never more than the cap", () => {
   const due = dueRevisions("2026-02-01", past, units);
   assert.deepEqual(due.map((d) => d.slug), ["u3", "u2", "u1"]);
   assert.equal(dueRevisions("2026-02-01", past, units, 2).length, 2);
+});
+
+test("a missing table is recognised by its Postgres error code", () => {
+  assert.equal(isMissingTable(Object.assign(new Error("boom"), { code: "42P01" })), true);
+  assert.equal(isMissingTable(Object.assign(new Error("boom"), { code: "42703" })), false);
+  assert.equal(isMissingTable(new Error("boom")), false);
+  assert.equal(isMissingTable(null), false);
 });

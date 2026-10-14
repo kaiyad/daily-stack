@@ -23,6 +23,7 @@ export function Masthead({
           <Link href="/">Today</Link>
           <Link href="/archive">Archive</Link>
           <Link href="/cheatsheet">Cheatsheet</Link>
+          <Link href="/shelf">Shelf</Link>
         </nav>
       </div>
 

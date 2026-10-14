@@ -10,7 +10,7 @@ export function ymdInTz(at: Date, tz: string = env.editionTz): string {
   }).format(at);
 }
 
-function hourInTz(at: Date, tz: string): number {
+export function hourInTz(at: Date, tz: string = env.editionTz): number {
   return Number(
     new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", hour12: false }).format(at),
   );

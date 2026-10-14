@@ -1,0 +1,30 @@
+{
+  "headline": "The shape a piece has to take, with one short section as a sample.",
+  "dek": "Copy this file to <slug>.json, where <slug> matches a row in db/seed/books.json, and fill it in. It is validated against the same schema the model output is held to, so npm run shelf:status will tell you if it is wrong before Friday.",
+  "sections": [
+    {
+      "heading": "What the book is, and the question it set out to answer",
+      "body_md": "Paragraphs, separated by blank lines. `**bold**`, `*italic*` and backtick `code` are the only markup that renders; headings, bullet lists and markdown links are not supported inside a section body.\n\nEight to twelve sections, in reading order. Each gets its own heading, so do not repeat the heading inside the body. Aim for 3500-4500 words in total across all the bodies; the publish step refuses anything under 1500."
+    }
+  ],
+  "takeaways": [
+    "Five to eight complete sentences, each one fact worth keeping.",
+    "They render as a list under 'What to keep', at the end of the piece."
+  ],
+  "context_links": [
+    {
+      "title": "The page's own title",
+      "url": "https://example.org/a-real-page",
+      "note": "one clause on what the reader gets from it",
+      "kind": "concept"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Something that backs a claim in the piece",
+      "url": "https://example.org/a-source",
+      "note": "what it supports",
+      "kind": "primary-source"
+    }
+  ]
+}

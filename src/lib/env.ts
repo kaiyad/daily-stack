@@ -22,6 +22,15 @@ export const env = {
   freezeHour: Number(process.env.EDITION_FREEZE_HOUR ?? 6),
   anthropicKey: process.env.ANTHROPIC_API_KEY || "",
   enrichModel: process.env.ENRICH_MODEL || "claude-haiku-5-5",
+  // The shelf is one long piece a week, not nineteen blurbs a day, so it is
+  // worth a far more capable model than enrichment uses.
+  shelfModel: process.env.SHELF_MODEL || "claude-opus-5-5",
+  shelfPublishHour: Number(process.env.SHELF_PUBLISH_HOUR ?? 21),
+  shelfMaxSearches: Number(process.env.SHELF_MAX_SEARCHES ?? 14),
+  // The free fallback, used only when no piece was written ahead of time and
+  // there is no Anthropic key.
+  geminiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-3.8-flash",
   githubToken: process.env.GITHUB_TOKEN || "",
   redditClientId: process.env.REDDIT_CLIENT_ID || "",
   redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",

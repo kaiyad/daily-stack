@@ -127,6 +127,77 @@ product: the daily page is for reading, the cheatsheet is for looking up the
 thing you half-remember. `/concepts` redirects there, and `/concepts/<slug>`
 is still each unit's own page.
 
+## The Weekly Shelf
+
+One famous book a week, summarised at length — 3500-4500 words on the argument,
+the evidence, the objections and what has changed since — published Friday
+night at `SHELF_PUBLISH_HOUR` in `EDITION_TZ`. It lives at `/shelf` and
+`/shelf/<slug>`, on its own routes rather than inside an edition: an edition is
+a fifteen-minute read of nineteen links, and this is not.
+
+```bash
+npm run books:seed            # 52 curated titles across 16 genres
+npm run shelf:schedule 13     # pin the next 13 Fridays, no genre twice in a row
+npm run shelf:status          # what the next Fridays publish, and by which writer
+npm run shelf                 # write this Friday's piece as a draft
+npm run shelf -- --freeze     # ...and publish it
+npm run shelf -- --date 2026-10-16 --freeze
+```
+
+**The book is never chosen by the model.** `db/seed/books.json` is the
+catalogue; `npm run shelf:schedule` pins titles to Fridays in order, skipping a
+genre that ran the week before, so a quarter of the shelf is visible ahead of
+time. It is a horizon, not a batch - re-running it does nothing. A book that
+has published can never publish again: `shelf_editions.slug` is unique.
+
+### Who writes the piece
+
+Three writers, tried in this order, and the page tells the reader which one ran:
+
+| `provenance` | When it runs | Links are |
+|---|---|---|
+| `written` | `db/seed/shelf/<slug>.json` exists | trusted - a human checked them |
+| `claude` | no file, `ANTHROPIC_API_KEY` set | vetted against the search results |
+| `gemini` | no file, no Anthropic key, `GEMINI_API_KEY` set | vetted, or probed if ungrounded |
+
+**`written` is the intended path.** You write the pieces ahead of time - in a
+Claude Code session, in batches - and commit them. `db/seed/shelf/README.md`
+has the format and `EXAMPLE.json.txt` the shape; a file is validated against
+the same schema the models are held to, so a malformed one fails before Friday
+rather than rendering wrong. `npm run shelf:status` is the report that matters:
+it lists the next thirteen Fridays and which writer each will use, so an empty
+queue is visible weeks out instead of on the night.
+
+```bash
+npm run shelf:status          # what the next quarter will publish, and how
+```
+
+**The model paths exist so a missed refill still publishes something.** Both
+work the same way, in two calls, and that is what makes their links real: the
+first call searches and reports what it found, and every URL the API actually
+returned is collected from the response - `web_search_tool_result` blocks for
+Claude, `url_citation` annotations for Gemini. The second call writes the piece
+under a schema citing only that dossier, and `vetLinks` drops any URL not in
+the collected set, so a plausible-looking but invented link never reaches the
+page. Dropped links are counted in `shelf_editions.links_dropped`.
+
+Gemini's `google_search` tool carries a free monthly search allowance, so the
+fallback is grounded in the normal case. If search is unavailable on the key,
+the run continues without it and every proposed link is probed for existence
+instead (`src/pipeline/writers/probe.ts`) - weaker, since a live page is not
+evidence the model read it, but it still catches the invented URL. A link is
+dropped only on proof it is gone: 404, 410, or unreachable.
+
+**Nothing to write means nothing published.** No file, no keys - the run warns
+and exits without assigning a book, so a dry Friday does not spend a catalogue
+slot. A Friday that has already passed with no book scheduled is skipped rather
+than back-filled.
+
+A piece freezes exactly like an edition, by a database trigger rather than by
+application code: a draft can be rebuilt as often as you like, and after the
+freeze no update, un-freeze or delete is possible, nor can the book row it
+points at be deleted.
+
 ## Deploying free
 
 Three pieces, none of which needs a card:
@@ -160,6 +231,20 @@ kept for platforms with a longer ceiling and for manual triggering;
 
 No deploy hook is needed after a new edition: `/` and `/[date]` revalidate every
 five minutes, so a new date appears on its own.
+
+**Migrations are not deployed by the web deploy.** `next build` prerenders every
+past edition, which means it reads the schema; Vercel builds on push, while
+`db:migrate` runs in the daily job. So when a change adds a migration, apply it
+to the hosted database *before* pushing:
+
+```bash
+DATABASE_URL='postgres://…neon…' npm run db:migrate
+```
+
+Forgetting it used to fail the whole build on one missing table. The revision
+query now degrades to an empty block with a warning instead, so a deploy that
+runs ahead of its migration loses that section for one cycle rather than taking
+the site down.
 
 ### The things that actually bite
 
@@ -197,8 +282,20 @@ back, one published on day N-2 did not, and the rows landed in
 `edition_revisions`. That synthetic history was then removed, so a local
 database will show no Revision block until four editions exist.
 
-**Not verified: the enrichment call.** No `ANTHROPIC_API_KEY` was available, so
-`src/pipeline/enrich.ts` has never executed against the API. Both editions here
-were built on the no-key path, which falls back to feed descriptions. The request
-shape follows the current SDK (`messages.parse` with `zodOutputFormat`), but
-treat the first run with a key as untested.
+The shelf was verified on 2026-10-14: migration `0004_shelf.sql`, 52 books
+seeded, 8 Fridays scheduled with no genre twice in a row, and — against a
+committed fixture piece — `/shelf` and `/shelf/sapiens` prerendering with their
+prose, link groups and takeaways intact. The trigger was exercised inside a
+transaction: a draft rebuilt, the freeze transition allowed, and then a reword,
+an un-freeze, a delete and a delete of the book row all refused (`25006`,
+`25006`, `25006`, `23503`). The fixture was removed afterwards, so a local
+database shows an empty shelf.
+
+**Not verified: either model call.** No `ANTHROPIC_API_KEY` was available, so
+neither `src/pipeline/enrich.ts` nor `src/pipeline/shelf.ts` has ever executed
+against the API. Editions here were built on the no-key path, which falls back
+to feed descriptions; no shelf piece has been generated at all. Both follow the
+current SDK (`messages.parse` with `zodOutputFormat`, and for the shelf the
+`web_search_20260209` server tool), but treat the first run with a key as
+untested — in particular the length of the piece, whether the search dossier is
+rich enough that few links get dropped, and the real cost per piece.

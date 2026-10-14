@@ -1,4 +1,6 @@
 import { query, one } from "./db";
+import { log } from "./log";
+import { isMissingTable } from "./revision";
 import { SLOTS, type SlotId } from "./slots";
 import type { ConceptRow } from "../pipeline/concepts";
 
@@ -72,14 +74,7 @@ export async function getEdition(date: string): Promise<Edition | undefined> {
     [date],
   );
 
-  const revisions = await query<RevisionRow>(
-    `select slug, title, kind, question, answer, interval_days,
-            to_char(origin_date, 'YYYY-MM-DD') as origin_date,
-            (edition_date - origin_date) as elapsed_days
-       from edition_revisions where edition_date = $1
-      order by interval_days, origin_date`,
-    [date],
-  );
+  const revisions = await loadRevisions(date);
 
   const sections = SLOTS.map((s) => ({
     slot: s.id,
@@ -96,6 +91,28 @@ export async function getEdition(date: string): Promise<Edition | undefined> {
     revisions,
     entryCount: ed.entry_count,
   };
+}
+
+/**
+ * Missing table means migration 0003 has not reached this database yet. That
+ * costs the Revision block, not the whole page - a prerender that dies here
+ * takes the entire site down with it.
+ */
+async function loadRevisions(date: string): Promise<RevisionRow[]> {
+  try {
+    return await query<RevisionRow>(
+      `select slug, title, kind, question, answer, interval_days,
+              to_char(origin_date, 'YYYY-MM-DD') as origin_date,
+              (edition_date - origin_date) as elapsed_days
+         from edition_revisions where edition_date = $1
+        order by interval_days, origin_date`,
+      [date],
+    );
+  } catch (err) {
+    if (!isMissingTable(err)) throw err;
+    log.warn("edition_revisions is missing - run `npm run db:migrate` against this database");
+    return [];
+  }
 }
 
 /** Newest edition that has anything in it. */
