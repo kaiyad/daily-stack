@@ -22,7 +22,7 @@ export function Masthead({
         <nav className="nav">
           <Link href="/">Today</Link>
           <Link href="/archive">Archive</Link>
-          <Link href="/concepts">Concepts</Link>
+          <Link href="/cheatsheet">Cheatsheet</Link>
         </nav>
       </div>
 

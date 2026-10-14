@@ -20,6 +20,17 @@ export type EntryRow = {
   published_at: string | null;
 };
 
+export type RevisionRow = {
+  slug: string;
+  title: string;
+  kind: string;
+  question: string;
+  answer: string;
+  interval_days: number;
+  origin_date: string;
+  elapsed_days: number;
+};
+
 export type EditionRow = {
   edition_date: string;
   status: "draft" | "frozen";
@@ -33,6 +44,7 @@ export type Edition = {
   status: "draft" | "frozen";
   sections: { slot: SlotId; label: string; blurb: string; entries: EntryRow[] }[];
   concept?: ConceptRow;
+  revisions: RevisionRow[];
   entryCount: number;
 };
 
@@ -60,6 +72,15 @@ export async function getEdition(date: string): Promise<Edition | undefined> {
     [date],
   );
 
+  const revisions = await query<RevisionRow>(
+    `select slug, title, kind, question, answer, interval_days,
+            to_char(origin_date, 'YYYY-MM-DD') as origin_date,
+            (edition_date - origin_date) as elapsed_days
+       from edition_revisions where edition_date = $1
+      order by interval_days, origin_date`,
+    [date],
+  );
+
   const sections = SLOTS.map((s) => ({
     slot: s.id,
     label: s.label,
@@ -72,6 +93,7 @@ export async function getEdition(date: string): Promise<Edition | undefined> {
     status: ed.status,
     sections,
     concept,
+    revisions,
     entryCount: ed.entry_count,
   };
 }

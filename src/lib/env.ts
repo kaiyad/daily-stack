@@ -12,7 +12,12 @@ function required(name: string): string {
 }
 
 export const env = {
-  databaseUrl: required("DATABASE_URL"),
+  // A getter, not a value: importing this module for `editionTz` alone - as a
+  // pure-logic test does - must not demand a database. Every real entry point
+  // reaches it through `db.ts`, which still fails fast at import.
+  get databaseUrl(): string {
+    return required("DATABASE_URL");
+  },
   editionTz: process.env.EDITION_TZ || "UTC",
   freezeHour: Number(process.env.EDITION_FREEZE_HOUR ?? 6),
   anthropicKey: process.env.ANTHROPIC_API_KEY || "",

@@ -41,7 +41,7 @@ export default async function ConceptPage({ params }: { params: Promise<{ slug: 
       <ConceptCard concept={concept} linkTitle={false} />
       <div className="datenav">
         <Link href={`/${date}`}>← edition of {date}</Link>
-        <Link href="/concepts">all concepts</Link>
+        <Link href="/cheatsheet">cheatsheet</Link>
       </div>
     </main>
   );

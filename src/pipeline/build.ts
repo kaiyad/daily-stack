@@ -9,6 +9,7 @@ import { scoreAll, type Scored } from "./score";
 import { select, type Selection } from "./select";
 import { enrich } from "./enrich";
 import { assignConcept } from "./concepts";
+import { planRevisions, type DueRevision } from "./revision";
 
 export type BuildOptions = {
   freeze?: boolean;
@@ -23,6 +24,7 @@ export type BuildResult = {
   entries: number;
   frozen: boolean;
   concept?: string;
+  revisions: number;
 };
 
 /** Candidate pool ranked but not written anywhere. Used by `npm run candidates`. */
@@ -79,8 +81,12 @@ export async function buildEdition(
 
   const enrichment = opts.skipEnrich ? new Map() : await enrich(selections);
   const concept = await assignConcept(editionDate);
+  // Only units from *earlier* editions are eligible, so today's unit never
+  // comes back for revision in the edition that introduces it.
+  const revisions = await planRevisions(editionDate);
+  log.info(`${revisions.length} unit(s) up for revision`);
 
-  await writeDraft(editionDate, selections, enrichment, concept?.id);
+  await writeDraft(editionDate, selections, enrichment, revisions, concept?.id);
 
   if (opts.freeze) {
     await query(
@@ -96,6 +102,7 @@ export async function buildEdition(
     entries: selections.length,
     frozen: Boolean(opts.freeze),
     concept: concept?.slug,
+    revisions: revisions.length,
   };
 }
 
@@ -103,6 +110,7 @@ async function writeDraft(
   editionDate: string,
   selections: Selection[],
   enrichment: Map<number, { summary: string; why: string; tags: string[] }>,
+  revisions: DueRevision[],
   conceptId?: number,
 ): Promise<void> {
   await tx(async (client) => {
@@ -117,6 +125,16 @@ async function writeDraft(
     );
 
     await client.query(`delete from edition_slots where edition_date = $1`, [editionDate]);
+    await client.query(`delete from edition_revisions where edition_date = $1`, [editionDate]);
+
+    for (const r of revisions) {
+      await client.query(
+        `insert into edition_revisions
+           (edition_date, concept_id, interval_days, origin_date, slug, title, kind, question, answer)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [editionDate, r.conceptId, r.intervalDays, r.originDate, r.slug, r.title, r.kind, r.question, r.answer],
+      );
+    }
 
     for (const [i, sel] of selections.entries()) {
       const c = sel.entry.cluster;

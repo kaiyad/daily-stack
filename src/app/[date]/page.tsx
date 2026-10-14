@@ -4,6 +4,7 @@ import { isValidYmd } from "../../lib/dates";
 import { Masthead } from "../../components/Masthead";
 import { ConceptCard } from "../../components/ConceptCard";
 import { EditionBody } from "../../components/EditionBody";
+import { RevisionBlock } from "../../components/RevisionBlock";
 import { Footer } from "../../components/Footer";
 
 export const revalidate = 300;
@@ -42,6 +43,7 @@ export default async function EditionPage({ params }: { params: Promise<{ date: 
       />
       {edition.concept ? <ConceptCard concept={edition.concept} /> : null}
       <EditionBody edition={edition} />
+      <RevisionBlock revisions={edition.revisions} />
       <Footer />
     </main>
   );

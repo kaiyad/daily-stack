@@ -20,7 +20,9 @@
    "reliability",
    "http"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does the client have to supply for a retried POST to run at most once, and who stores it?"
  },
  {
   "slug": "cap-theorem-in-practice",
@@ -43,7 +45,9 @@
    "replication",
    "theory"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "During a network partition, what is the only choice CAP actually gives you?"
  },
  {
   "slug": "read-your-writes",
@@ -66,7 +70,9 @@
    "replication",
    "caching"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Which consistency guarantee stops a user from seeing their own edit disappear?"
  },
  {
   "slug": "lsm-tree",
@@ -93,7 +99,9 @@
    "rocksdb",
    "performance"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does an LSM tree trade away to make every write sequential?"
  },
  {
   "slug": "mvcc",
@@ -116,7 +124,9 @@
    "transactions",
    "isolation"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "How does MVCC let a reader avoid blocking on a concurrent writer?"
  },
  {
   "slug": "write-skew",
@@ -139,7 +149,9 @@
    "isolation",
    "correctness"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "Which anomaly can two transactions produce while each one reads and writes disjoint rows?"
  },
  {
   "slug": "index-selectivity",
@@ -162,7 +174,9 @@
    "query planning",
    "performance"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "When will the planner ignore your index and scan the table instead?"
  },
  {
   "slug": "connection-pooling",
@@ -185,7 +199,9 @@
    "concurrency",
    "capacity"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Why does a pool bigger than the database's core count usually make latency worse?"
  },
  {
   "slug": "backpressure",
@@ -212,7 +228,9 @@
    "queues",
    "overload"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What is the system doing wrong when it buffers instead of applying backpressure?"
  },
  {
   "slug": "circuit-breaker",
@@ -239,7 +257,9 @@
    "resilience",
    "microservices"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Whose health is a circuit breaker actually protecting - the dependency's or yours?"
  },
  {
   "slug": "exponential-backoff-jitter",
@@ -262,7 +282,9 @@
    "retries",
    "networking"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Why is backoff without jitter still a synchronised retry storm?"
  },
  {
   "slug": "thundering-herd",
@@ -289,12 +311,14 @@
    "reliability",
    "performance"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What happens to the origin the instant a popular cache key expires?"
  },
  {
   "slug": "bloom-filter",
   "title": "Bloom Filters",
-  "category": "algorithms",
+  "category": "data structures",
   "one_liner": "A few kilobytes that tell you, with no false negatives, what is definitely absent.",
   "body_md": "**The mechanism.** A bit array of size `m` and `k` independent hash functions. To insert, hash the element `k` times and set those bits. To query, hash and check: if any bit is 0 the element is *definitely absent*; if all are 1 it is *probably present*. No false negatives, tunable false positives, no deletions, and no way to enumerate what is in it.\n\n**The numbers worth memorising.** About 10 bits per element gives a 1% false positive rate; 14 bits gives 0.1%. That is independent of element size \u2014 a million 200-byte URLs fit in roughly 1.2MB at 1%, versus ~200MB for a hash set. The optimal `k` is `(m/n) * ln2`, around 7 for the 1% case.\n\n**Where it earns its place.** Every SSTable in an LSM tree carries one, so a point lookup skips files that cannot contain the key \u2014 that is what makes LSM reads tolerable. CDNs use them to decide whether an object is worth caching on first request. Chrome shipped one for malicious URLs. Bitcoin used them for light-client filtering.\n\n**Know the variants.** *Counting* Bloom filters support deletion at 3\u20134x the space. *Cuckoo* filters support deletion and beat Bloom on space below ~3% error. *Quotient* filters are more cache-friendly. If you need counts rather than membership, you want Count-Min Sketch; if you need cardinality, HyperLogLog.\n\n**Takeaway.** When a \"probably\" is cheap and a \"definitely not\" is valuable, this is the structure. Always ask what a false positive costs you before you reach for it.",
   "links": [
@@ -312,7 +336,13 @@
    "probabilistic",
    "storage"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "data-structure",
+  "recall_q": "Which of the two answers from a Bloom filter is the one you can trust?",
+  "practice": {
+   "prompt": "Size a Bloom filter for 5 million cache keys at a 1% false positive rate, then say what a false positive costs in a read-through cache and in a password-breach checker.",
+   "hint": "About 10 bits per element, k = (m/n) * ln2. The cost asymmetry is the whole design question: one wastes a lookup, the other rejects a valid password."
+  }
  },
  {
   "slug": "consistent-hashing",
@@ -339,7 +369,9 @@
    "load balancing",
    "caching"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "How many keys move when a node leaves a consistent hash ring, versus modulo hashing?"
  },
  {
   "slug": "raft",
@@ -366,7 +398,9 @@
    "replication",
    "etcd"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What must a Raft leader do before it can consider an entry committed?"
  },
  {
   "slug": "vector-clocks",
@@ -393,7 +427,9 @@
    "clocks",
    "replication"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What can a vector clock tell you that a wall-clock timestamp cannot?"
  },
  {
   "slug": "crdt",
@@ -420,7 +456,9 @@
    "offline-first",
    "collaboration"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What property makes a CRDT converge without any coordination?"
  },
  {
   "slug": "saga-pattern",
@@ -443,7 +481,9 @@
    "transactions",
    "patterns"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What replaces rollback when a business transaction spans several services?"
  },
  {
   "slug": "outbox-pattern",
@@ -466,7 +506,9 @@
    "microservices",
    "kafka"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "How do you publish an event and commit a row without a distributed transaction?"
  },
  {
   "slug": "structured-concurrency",
@@ -494,7 +536,9 @@
    "java",
    "python"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does structured concurrency guarantee about a task when its scope exits?"
  },
  {
   "slug": "false-sharing",
@@ -517,7 +561,9 @@
    "multithreading",
    "optimization"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "Why can two threads writing to different variables still destroy each other's performance?"
  },
  {
   "slug": "happens-before",
@@ -545,7 +591,9 @@
    "c++",
    "rust"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What does a happens-before edge actually buy you beyond ordering?"
  },
  {
   "slug": "virtual-threads-vs-async",
@@ -568,7 +616,9 @@
    "async",
    "runtime"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What problem do virtual threads solve that async/await solves a different way?"
  },
  {
   "slug": "head-of-line-blocking",
@@ -591,7 +641,9 @@
    "quic",
    "kafka"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Where does HTTP/2 still suffer head-of-line blocking that HTTP/3 does not?"
  },
  {
   "slug": "bandwidth-delay-product",
@@ -614,7 +666,9 @@
    "latency",
    "throughput"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does the bandwidth-delay product tell you to size?"
  },
  {
   "slug": "tls-handshake",
@@ -637,7 +691,9 @@
    "https",
    "cryptography"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does the TLS handshake establish before any application byte is sent?"
  },
  {
   "slug": "page-cache-fsync",
@@ -660,7 +716,9 @@
    "durability",
    "storage"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "After write() returns successfully, where is your data?"
  },
  {
   "slug": "copy-on-write",
@@ -683,7 +741,9 @@
    "linux",
    "redis"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does fork() actually copy, and when is the real copy paid for?"
  },
  {
   "slug": "tail-latency-amplification",
@@ -706,7 +766,9 @@
    "slo",
    "microservices"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Why does a service that fans out to 100 backends inherit their p99, not their median?"
  },
  {
   "slug": "coordinated-omission",
@@ -729,7 +791,9 @@
    "latency",
    "measurement"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Which requests does a load generator forget to record, and how does that flatter your p99?"
  },
  {
   "slug": "littles-law",
@@ -752,7 +816,9 @@
    "queueing",
    "throughput"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What three quantities does Little's Law tie together?"
  },
  {
   "slug": "flame-graphs",
@@ -775,7 +841,9 @@
    "observability",
    "tooling"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What do the width and the x-axis of a flame graph mean?"
  },
  {
   "slug": "rate-limiting-algorithms",
@@ -798,7 +866,9 @@
    "throttling",
    "redis"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does a token bucket allow that a fixed window does not?"
  },
  {
   "slug": "hexagonal-architecture",
@@ -821,7 +891,9 @@
    "testing",
    "ddd"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Which direction do dependencies point in a hexagonal architecture?"
  },
  {
   "slug": "event-sourcing",
@@ -844,7 +916,9 @@
    "cqrs",
    "patterns"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What is the source of truth in an event-sourced system, and what is derived?"
  },
  {
   "slug": "expand-contract-migration",
@@ -871,7 +945,9 @@
    "deployment",
    "zero downtime"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What are the three deploys of an expand-contract schema change?"
  },
  {
   "slug": "deterministic-simulation-testing",
@@ -894,7 +970,9 @@
    "reliability",
    "testing"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What does deterministic simulation testing give you that a flaky integration test cannot?"
  },
  {
   "slug": "property-based-testing",
@@ -917,7 +995,9 @@
    "fuzzing",
    "correctness"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What do you assert in a property-based test instead of an expected value?"
  },
  {
   "slug": "oauth-pkce",
@@ -940,7 +1020,9 @@
    "authentication",
    "web"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What attack does PKCE prevent that a plain authorization code flow does not?"
  },
  {
   "slug": "jwt-pitfalls",
@@ -963,7 +1045,9 @@
    "authentication",
    "web"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Why can a JWT not be revoked, and what do you do about it?"
  },
  {
   "slug": "password-hashing",
@@ -986,7 +1070,9 @@
    "authentication",
    "owasp"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What makes a password hash slow on purpose, and which knobs control it?"
  },
  {
   "slug": "csrf-and-samesite",
@@ -1009,7 +1095,9 @@
    "cookies",
    "owasp"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does SameSite=Lax still allow, and where does CSRF survive?"
  },
  {
   "slug": "parameterized-queries",
@@ -1032,7 +1120,9 @@
    "injection",
    "owasp"
   ],
-  "difficulty": "beginner"
+  "difficulty": "beginner",
+  "kind": "concept",
+  "recall_q": "Why does a parameterised query stop injection where escaping does not?"
  },
  {
   "slug": "supply-chain-integrity",
@@ -1055,7 +1145,9 @@
    "ci",
    "dependencies"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does a lockfile hash prove, and what does it not?"
  },
  {
   "slug": "variance",
@@ -1079,7 +1171,9 @@
    "kotlin",
    "typescript"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "When is a `List<Dog>` safely a `List<Animal>`?"
  },
  {
   "slug": "algebraic-data-types",
@@ -1103,7 +1197,9 @@
    "typescript",
    "modelling"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does a sum type let the compiler check that a boolean flag cannot?"
  },
  {
   "slug": "ownership-and-borrowing",
@@ -1126,7 +1222,9 @@
    "memory safety",
    "concurrency"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What rule about aliasing and mutation does the borrow checker enforce?"
  },
  {
   "slug": "metric-cardinality",
@@ -1149,7 +1247,9 @@
    "monitoring",
    "cost"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "Which label turns a cheap metric into an expensive one?"
  },
  {
   "slug": "trace-sampling",
@@ -1172,7 +1272,9 @@
    "tracing",
    "debugging"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does head sampling miss that tail sampling catches?"
  },
  {
   "slug": "slo-error-budgets",
@@ -1195,12 +1297,14 @@
    "slo",
    "monitoring"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What does an error budget authorise you to do?"
  },
  {
   "slug": "merkle-trees",
   "title": "Merkle Trees",
-  "category": "algorithms",
+  "category": "data structures",
   "one_liner": "A tree of hashes: one root fingerprint, and a short proof for any leaf.",
   "body_md": "**The mechanism.** Hash each data block to form the leaves, then hash each pair of children to form their parent, repeatedly, up to a single root hash. Two properties follow. Any change to any block changes the root. And you can prove a specific block is in the tree by supplying `log n` sibling hashes \u2014 the verifier recomputes the path to the root and compares. That proof is small even for an enormous tree.\n\n**What it is used for.** *Efficient diffing*: two replicas compare roots; if they differ, they descend only into subtrees that disagree, so synchronising a mostly-identical dataset costs `log n` round trips rather than a full scan. Cassandra and DynamoDB anti-entropy repair work this way, as does `rsync`'s cousin, and ZFS scrub. *Inclusion proofs*: Certificate Transparency logs let a client verify a certificate is in the public log without downloading it. Blockchains use them so a light client can verify a transaction against a block header. *Integrity at rest*: ZFS and Btrfs hash every block into a tree rooted in the superblock, which is how they detect silent corruption.\n\n**Content addressing is the same idea.** Name a thing by the hash of its content, and identity becomes verifiable, deduplication becomes automatic, and caching becomes trivially safe because the name cannot refer to different bytes later. Git is a Merkle DAG \u2014 a commit hash covers the tree hash which covers every blob \u2014 which is precisely why history cannot be altered without every subsequent hash changing. IPFS, Nix, Bazel's action cache and every container registry rest on the same property.\n\n**Takeaway.** When you need to compare, verify, or deduplicate large data cheaply, hash it into a tree and compare roots.",
   "links": [
@@ -1218,7 +1322,13 @@
    "git",
    "integrity"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "data-structure",
+  "recall_q": "How does a Merkle tree let two replicas find their difference without sending everything?",
+  "practice": {
+   "prompt": "Two replicas hold a million keys and differ in three. Design the comparison so the traffic is proportional to the differences, not to the data, and say how many round trips it takes.",
+   "hint": "Exchange root hashes, then descend only into subtrees whose hashes differ. Depth is log(n) with fan-out, so round trips are a handful \u2014 that is anti-entropy repair."
+  }
  },
  {
   "slug": "quorum-reads-writes",
@@ -1241,7 +1351,9 @@
    "consistency",
    "cassandra"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What must R + W satisfy for a quorum system to read its own writes?"
  },
  {
   "slug": "fencing-tokens",
@@ -1264,7 +1376,9 @@
    "leases",
    "correctness"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What failure does a lease alone fail to prevent, and what fixes it?"
  },
  {
   "slug": "exactly-once-illusion",
@@ -1287,7 +1401,9 @@
    "kafka",
    "idempotency"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What is actually achievable instead of exactly-once delivery?"
  },
  {
   "slug": "zero-copy",
@@ -1310,7 +1426,9 @@
    "kernel",
    "kafka"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "Which copies does sendfile() eliminate?"
  },
  {
   "slug": "io-models",
@@ -1333,7 +1451,9 @@
    "networking",
    "syscalls"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What distinguishes non-blocking I/O from asynchronous I/O?"
  },
  {
   "slug": "data-oriented-design",
@@ -1356,7 +1476,9 @@
    "optimization",
    "memory layout"
   ],
-  "difficulty": "advanced"
+  "difficulty": "advanced",
+  "kind": "concept",
+  "recall_q": "What does data-oriented design optimise for that OO layout fights?"
  },
  {
   "slug": "canary-deploys",
@@ -1379,7 +1501,9 @@
    "release",
    "feature flags"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "What makes a canary a canary rather than a slow rollout?"
  },
  {
   "slug": "strangler-fig",
@@ -1402,6 +1526,729 @@
    "migration",
    "patterns"
   ],
-  "difficulty": "intermediate"
+  "difficulty": "intermediate",
+  "kind": "concept",
+  "recall_q": "How does a strangler fig migration avoid a big-bang cutover?"
+ },
+ {
+  "slug": "binary-search-on-answer",
+  "title": "Binary Search on the Answer",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "If you can check an answer cheaply, you can search for it \u2014 no array required.",
+  "body_md": "**The mechanism.** Binary search does not need a sorted array. It needs a *monotone predicate*: some `ok(x)` that is false for every x below a threshold and true for every x at or above it. The array case is just `ok(i) = a[i] >= target`. Once you see the predicate, the search space can be capacity, time, a rate limit, a budget \u2014 anything orderable.\n\n**The shape that does not have off-by-one bugs.** Keep one invariant: `lo` is always a value where the predicate is false (or one below the range) and `hi` is always a value where it is true. Loop while `lo + 1 < hi`, set `mid = lo + (hi - lo) / 2`, and move whichever bound the test justifies. On exit `hi` is the answer. Writing `(lo + hi) / 2` instead overflows on large bounds \u2014 the bug that sat in `java.util.Arrays.binarySearch` for nine years.\n\n**Where it shows up in real work.** Sizing a connection pool against a latency SLO. Finding the largest batch that fits a timeout. Picking a compression level under a CPU budget. Capacity planning of any kind: `can we serve this load with N machines?` is monotone in N, so you binary search N instead of guessing. Percentile estimation over a histogram is the same move.\n\n**The cost model.** `O(log range)` calls to the predicate, so the predicate is where all the time goes. If `ok(x)` is a full simulation costing O(n), the total is `O(n log range)` \u2014 still usually far better than trying every value. If the predicate is a real experiment rather than a function, remember that it must be *deterministic*, or the search converges on noise.\n\n**Takeaway.** When a problem asks for a minimum or maximum that satisfies a condition, stop trying to construct the answer. Ask whether you can test one.",
+  "links": [
+   {
+    "title": "Nearly all binary searches are broken (Josh Bloch)",
+    "url": "https://research.google/blog/extra-extra-read-all-about-it-nearly-all-binary-searches-and-mergesorts-are-broken/"
+   },
+   {
+    "title": "Binary search algorithm",
+    "url": "https://en.wikipedia.org/wiki/Binary_search_algorithm"
+   }
+  ],
+  "tags": [
+   "search",
+   "complexity",
+   "interview"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "What property must a predicate have before you can binary search on it?",
+  "practice": {
+   "prompt": "A ship loads packages in a fixed order; each has a weight. Find the smallest daily capacity that ships them all within D days.",
+   "hint": "ok(capacity) = the greedy day-by-day packing finishes in <= D days. It is monotone, and the lower bound is max(weight), the upper bound is sum(weights)."
+  }
+ },
+ {
+  "slug": "two-pointers-sliding-window",
+  "title": "Two Pointers and Sliding Windows",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "Two indices that only ever move forward turn a quadratic scan into a linear one.",
+  "body_md": "**The mechanism.** Keep two indices into the same sequence and never move either one backwards. Each step either extends the window at the right or shrinks it at the left, so both pointers traverse the array once and the whole scan is O(n) even though it looks nested. The precondition is that the quantity you track is *monotone* as the window grows \u2014 adding an element cannot make the sum smaller, the distinct count lower, or the constraint easier.\n\n**The two families.** *Fixed window*: slide a window of size k, adding the entering element and removing the leaving one. *Variable window*: grow the right edge until the window is invalid, then pull the left edge in until it is valid again, recording the best window each step. The second family covers `longest substring without repeats`, `smallest subarray with sum >= S`, and almost every rate-limiting question.\n\n**Where it is not a toy.** A sliding-window rate limiter is exactly this, with timestamps instead of indices. Streaming percentile and moving-average computations are this. TCP's congestion window is this. Log deduplication over a time window is this. Any time you catch yourself about to re-scan a prefix you already scanned, there is a pointer you are failing to keep.\n\n**The variant worth knowing.** Sliding-window *maximum* cannot be done by a running counter, because the max can leave the window. The fix is a monotonic deque holding indices whose values are decreasing: push on the right while popping anything smaller, pop from the left when it falls out of the window. Still amortised O(1) per element, and it is the standard answer when the aggregate is not invertible.\n\n**Takeaway.** If a brute force is `for each start: for each end`, ask what makes the inner loop restart. Usually nothing does.",
+  "links": [
+   {
+    "title": "Two pointers (USACO Guide)",
+    "url": "https://usaco.guide/silver/two-pointers"
+   },
+   {
+    "title": "Minimum queue: the monotonic deque",
+    "url": "https://cp-algorithms.com/data_structures/stack_queue_modification.html"
+   }
+  ],
+  "tags": [
+   "arrays",
+   "streams",
+   "interview"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "What must be true of the quantity you track for a sliding window to stay linear?",
+  "practice": {
+   "prompt": "Given a request log of (timestamp, user) and a limit of N requests per 60s per user, emit every request that should be rejected \u2014 in one pass, O(1) amortised work per request.",
+   "hint": "Per user, a deque of timestamps. Evict from the front while front <= now - 60s, then compare the length to N."
+  }
+ },
+ {
+  "slug": "topological-sort",
+  "title": "Topological Sort",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "An order in which nothing runs before what it depends on \u2014 or proof that no such order exists.",
+  "body_md": "**The mechanism (Kahn's algorithm).** Count incoming edges per node. Put every node with indegree zero in a queue. Pop one, emit it, and decrement the indegree of each neighbour, pushing any that reach zero. O(V + E). If you emit fewer nodes than the graph has, the leftovers are exactly the nodes on cycles \u2014 which is why this is the standard *cycle detector* as well as the standard sorter.\n\n**The other way.** Depth-first search, pushing each node onto a stack after its descendants are done, gives the reverse topological order. It is shorter to write recursively but needs a three-colour marking (white/grey/black) to report cycles, and it blows the stack on deep graphs. Kahn's is the one to reach for in production code; DFS is the one to reach for on a whiteboard.\n\n**Where you already rely on it.** Build systems ordering compilation units. Package managers resolving dependencies \u2014 and reporting circular ones. Database migration runners. Spreadsheet recalculation. Task schedulers and CI pipeline stages. React's `useEffect` dependency ordering problems are the same shape. Terraform's plan graph is literally this.\n\n**The detail people miss.** A topological order is usually not unique, and which one you get is an implementation detail of your queue. If reproducible builds matter, make the tie-break explicit \u2014 use a priority queue keyed on something stable like the node name, and you get the *lexicographically smallest* valid order every run, on every machine.\n\n**Takeaway.** Any `A must happen before B` constraint set is a DAG. Sort it once; do not hand-maintain the order.",
+  "links": [
+   {
+    "title": "Topological sorting",
+    "url": "https://en.wikipedia.org/wiki/Topological_sorting"
+   }
+  ],
+  "tags": [
+   "graphs",
+   "build systems",
+   "scheduling"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "After Kahn's algorithm finishes, what do the nodes it never emitted tell you?",
+  "practice": {
+   "prompt": "You have a map of service -> services it depends on. Produce a deterministic start order, and when there is a cycle, print the services involved rather than a generic error.",
+   "hint": "Kahn's with a min-heap gives determinism. The nodes with indegree still above zero at the end are the cycle; walk their remaining edges to print one."
+  }
+ },
+ {
+  "slug": "dijkstra-shortest-path",
+  "title": "Dijkstra and the Priority Queue",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "Expand the closest unvisited node first, and the first time you reach a node you have the shortest path to it.",
+  "body_md": "**The mechanism.** Keep a tentative distance per node, all infinite but the source. Repeatedly take the unvisited node with the smallest tentative distance, mark it final, and relax each outgoing edge: if `dist[u] + w < dist[v]`, improve `dist[v]`. With a binary heap this is `O((V + E) log V)`. The greedy choice is only sound because every edge weight is non-negative \u2014 adding an edge can never shorten a path.\n\n**The implementation detail that matters.** Most heaps do not support decrease-key. The standard trick is to push a new `(distance, node)` pair on every improvement and skip entries whose distance is worse than the recorded one when popped \u2014 \"lazy deletion\". The heap grows to O(E) instead of O(V), which is almost always the right trade.\n\n**When it is the wrong algorithm.** Negative edges: use Bellman-Ford, which also detects negative cycles. Unweighted graphs: plain BFS is O(V + E) with no heap at all. All pairs on a dense graph: Floyd-Warshall. A single known target with a good distance estimate: A*, which is Dijkstra with the priority changed to `dist + heuristic` and is still optimal as long as the heuristic never overestimates.\n\n**Where it appears outside maps.** Lowest-cost routing in service meshes and BGP-adjacent tooling. Dependency resolution where versions carry a cost. Image segmentation via seam carving. Word-ladder and spell-correction searches over an edit graph. Any \"cheapest sequence of transformations\" question is a shortest-path question with the graph left implicit.\n\n**Takeaway.** Identify the graph, confirm the weights are non-negative, and reach for a heap. Most \"optimisation\" problems are shortest path wearing a costume.",
+  "links": [
+   {
+    "title": "Dijkstra's algorithm",
+    "url": "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
+   },
+   {
+    "title": "A* search algorithm",
+    "url": "https://en.wikipedia.org/wiki/A*_search_algorithm"
+   }
+  ],
+  "tags": [
+   "graphs",
+   "heaps",
+   "routing"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Why does Dijkstra break on negative edge weights, and what do you use instead?",
+  "practice": {
+   "prompt": "Given services with measured p50 latencies between them, find the lowest-latency path from the edge to a database \u2014 then extend it to return the two best disjoint paths.",
+   "hint": "Lazy-deletion heap for the first. For the second, remove the edges of the first path and rerun; note why that is a heuristic, not an optimum."
+  }
+ },
+ {
+  "slug": "quickselect-top-k",
+  "title": "Quickselect and Top-K",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "Finding the kth largest does not require sorting \u2014 expected linear time, not n log n.",
+  "body_md": "**The mechanism.** Partition the array around a pivot exactly as quicksort does, but then recurse into only the side that contains index k. Each step discards an expected constant fraction, so the expected cost is `n + n/2 + n/4 + ... = O(n)`. Worst case is O(n\u00b2) on an adversarial pivot sequence; median-of-medians makes it worst-case linear at a constant factor nobody wants to pay, and a random pivot is the practical answer.\n\n**The three ways to do top-k, and when each wins.** *Sort and slice*: O(n log n), fine below a few thousand items, and the clearest code. *Min-heap of size k*: O(n log k), the right answer when n is huge or streaming, because memory is O(k) and you never hold the data set. *Quickselect*: O(n) expected, the right answer when the data is already in memory and k is a meaningful fraction of n. `std::nth_element` and Go's `slices.SortFunc` partial variants are this.\n\n**The streaming case is different.** If the stream does not fit in memory and you only need *approximate* top-k by frequency, neither works \u2014 you want Count-Min Sketch plus a small heap, or the Space-Saving algorithm. Exact heavy hitters over an unbounded stream provably needs \u03a9(n) space, which is the kind of lower bound worth remembering before someone asks you to build it.\n\n**Where it shows up.** Leaderboards. p99 computation over a batch. \"Top 10 slowest queries\" in any APM. Selecting candidate rows before a ranking model. Trimmed means in benchmarking harnesses, where you discard the top and bottom few percent before averaging.\n\n**Takeaway.** `sorted(xs)[:k]` is a perfectly good default. Know the two upgrades and the exact point where sorting stops being free.",
+  "links": [
+   {
+    "title": "Quickselect",
+    "url": "https://en.wikipedia.org/wiki/Quickselect"
+   },
+   {
+    "title": "Median of medians",
+    "url": "https://en.wikipedia.org/wiki/Median_of_medians"
+   }
+  ],
+  "tags": [
+   "selection",
+   "streams",
+   "performance"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Which top-k method do you choose when n is enormous and k is small, and why?",
+  "practice": {
+   "prompt": "Implement top-k twice over the same data \u2014 once with a bounded min-heap, once with quickselect \u2014 and find the n where the heap stops winning on your machine.",
+   "hint": "Expect the crossover to move with k/n and with cache behaviour, not just with the asymptotics. Measure, do not reason."
+  }
+ },
+ {
+  "slug": "reservoir-sampling",
+  "title": "Reservoir Sampling",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "A uniform sample of a stream whose length you never learn, in one pass and fixed memory.",
+  "body_md": "**The mechanism (Algorithm R).** Keep the first k items. For item number i > k, replace a uniformly random slot with probability `k/i`. When the stream ends, every item that ever passed through is in the reservoir with probability exactly `k/n`. The proof is a two-line induction, and the result holds for any n \u2014 which is the point, because you never needed to know n.\n\n**Why it beats the obvious alternatives.** \"Count first, then sample\" needs two passes and a stable stream. \"Sample each item with probability p\" gives a sample of random *size* and requires knowing n to pick p. Reservoir sampling gives an exact-size, uniform sample in O(1) memory per slot and O(1) work per item, on a stream of unknown and unbounded length.\n\n**Where it earns its place.** Log and trace sampling when you must cap volume but keep the sample representative \u2014 head sampling with a fixed rate over-represents quiet periods, this does not. Picking example rows from a query result set for a UI preview. Choosing which request bodies to record in production debugging. A/B assignment audit trails. Any \"keep 1000 of these, fairly\" requirement over a firehose.\n\n**The variants.** *Weighted* reservoir sampling (A-Res) keeps items by `random()^(1/weight)` in a min-heap and gives you probability proportional to weight \u2014 which is what you want for sampling by request cost or error severity. Algorithm L skips ahead geometrically instead of rolling a die per item, cutting the random-number calls from O(n) to O(k log(n/k)).\n\n**Takeaway.** Any time someone proposes buffering a whole stream \"just to sample it\", this is the answer, and it fits in ten lines.",
+  "links": [
+   {
+    "title": "Reservoir sampling",
+    "url": "https://en.wikipedia.org/wiki/Reservoir_sampling"
+   },
+   {
+    "title": "Weighted random sampling (Efraimidis & Spirakis)",
+    "url": "https://utopia.duth.gr/~pefraimi/research/data/2007EncOfAlg.pdf"
+   }
+  ],
+  "tags": [
+   "streams",
+   "sampling",
+   "observability"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What does reservoir sampling give you that \"sample each item with probability p\" does not?",
+  "practice": {
+   "prompt": "Keep a uniform sample of 100 requests per minute from an unbounded request stream, then extend it so that error responses are ten times likelier to be sampled.",
+   "hint": "Algorithm R for the first. For the second, A-Res: key each item by random()**(1/w) and keep the k largest keys in a min-heap."
+  }
+ },
+ {
+  "slug": "dp-state-design",
+  "title": "Dynamic Programming is State Design",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "The hard part is never the recurrence; it is deciding what a subproblem is.",
+  "body_md": "**The actual method.** Dynamic programming applies when a problem has *optimal substructure* (the best solution is built from best solutions to subproblems) and *overlapping subproblems* (the same subproblem recurs). The work is to name the state: the smallest tuple that makes the future independent of the past. Once the state is right, the recurrence usually writes itself, and the complexity is `states \u00d7 transitions`.\n\n**Start top-down.** Write the plain recursion, then add a cache keyed on the arguments. That is memoisation, and it is already a correct DP \u2014 you have not chosen an iteration order, so you cannot get it wrong. Convert to a bottom-up table only when you need the constant factor or the rolling-array space reduction, because the conversion is where the off-by-one bugs live.\n\n**Reading the complexity before you code.** If your state is `(index, remaining_budget)` with n indices and B budget values, there are `n \u00d7 B` states; if each tries every item, transitions are O(n) and the whole thing is `O(n\u00b2 B)`. That calculation takes ten seconds and tells you whether to write it at all. It is also how you spot that knapsack is pseudo-polynomial: B is a *value*, not an input length.\n\n**Where it shows up at work.** Diff algorithms and merge conflict resolution. Query planners choosing join orders. Autocomplete and fuzzy search ranking. Bin-packing for schedulers and bundlers. Cost-optimal retry and batching policies. Regex engines that avoid backtracking. The realistic trigger is \"minimise/maximise/count over sequences of decisions\".\n\n**Takeaway.** Write the state definition as an English sentence first: `f(i, j) is the best score using the first i items with j capacity left`. If you cannot finish that sentence, no amount of table-filling will save you.",
+  "links": [
+   {
+    "title": "Dynamic programming",
+    "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
+   },
+   {
+    "title": "Knapsack problem",
+    "url": "https://en.wikipedia.org/wiki/Knapsack_problem"
+   }
+  ],
+  "tags": [
+   "optimisation",
+   "recursion",
+   "interview"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What two properties must a problem have before dynamic programming applies?",
+  "practice": {
+   "prompt": "You can batch outbound API calls. Each batch costs a fixed 20ms plus 2ms per item, and item i has a deadline. Minimise total lateness, and state the complexity before you write the code.",
+   "hint": "State: f(i) = min lateness for the first i items, where the last batch starts somewhere at j < i. Transitions are O(n), so O(n\u00b2) total."
+  }
+ },
+ {
+  "slug": "sweep-line-intervals",
+  "title": "Sweep Line over Intervals",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "Sort the endpoints, walk them in order, and most interval problems collapse into a counter.",
+  "body_md": "**The mechanism.** Turn each interval `[start, end)` into two events: `(start, +1)` and `(end, -1)`. Sort all events by position, breaking ties so that ends come before starts. Walk them in order maintaining a running counter. The counter is the number of intervals covering the current point, and its maximum is the peak overlap. O(n log n) for the sort, O(n) for the sweep, O(1) extra state.\n\n**What it answers without further thought.** Peak concurrency (\"how many meeting rooms do we need?\"). Merged intervals (\"emit a range whenever the counter leaves and returns to zero\"). Gaps and coverage holes. Whether any two intervals overlap. First time the count exceeds a limit. Total covered length, by accumulating distance while the counter is positive.\n\n**The tie-break is the whole bug surface.** For half-open intervals a meeting ending at 10:00 does not conflict with one starting at 10:00, so the `-1` event must sort first. Get this backwards and you over-count by exactly one room at every boundary \u2014 a bug that passes every test with gaps in the data and fails the day the schedule is back-to-back.\n\n**Where it is load-bearing.** Capacity planning from request traces. Billing for overlapping subscription periods. Rendering and collision broad-phase. Calendar and resource booking. Detecting concurrent deploys in an incident timeline. In databases, the same sweep underlies range-join algorithms and interval index lookups.\n\n**Takeaway.** When a problem gives you a pile of start/end pairs, stop comparing pairs. Flatten to events, sort once, sweep.",
+  "links": [
+   {
+    "title": "Sweep line algorithm",
+    "url": "https://en.wikipedia.org/wiki/Sweep_line_algorithm"
+   },
+   {
+    "title": "Interval scheduling",
+    "url": "https://en.wikipedia.org/wiki/Interval_scheduling"
+   }
+  ],
+  "tags": [
+   "intervals",
+   "sorting",
+   "scheduling"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "In a sweep over half-open intervals, which event must sort first on a tie, and what breaks if it does not?",
+  "practice": {
+   "prompt": "From a day of request traces (start, end per request), report peak concurrency, the minute it occurred, and the total time at least one request was in flight.",
+   "hint": "One event list, one counter. Accumulate (position - last_position) into the busy total whenever the counter is above zero."
+  }
+ },
+ {
+  "slug": "edit-distance",
+  "title": "Edit Distance",
+  "kind": "algorithm",
+  "category": "algorithms",
+  "one_liner": "The cheapest sequence of insertions, deletions and substitutions that turns one string into another.",
+  "body_md": "**The mechanism.** Let `f(i, j)` be the distance between the first i characters of A and the first j of B. If the characters match, `f(i, j) = f(i-1, j-1)`. Otherwise it is `1 + min(f(i-1, j), f(i, j-1), f(i-1, j-1))` \u2014 delete, insert, substitute. Base cases are the empty prefixes. `O(nm)` time, and `O(min(n, m))` space if you keep two rows, which is almost always what you should do.\n\n**The variants are not interchangeable.** *Levenshtein* allows substitution; *LCS distance* does not, which is why `diff` output looks the way it does. *Damerau-Levenshtein* adds transposition, which matters for typos (`teh`). *Hamming* requires equal lengths. Pick deliberately: spell-check wants Damerau, version control wants LCS, DNA alignment wants affine gap penalties where opening a gap costs more than extending it.\n\n**Making it fast enough.** Full DP on long strings is quadratic and hurts. If you only care whether the distance is at most k, band the computation to a diagonal strip of width 2k+1 and get `O(nk)`. If you are searching a dictionary, a BK-tree or a Levenshtein automaton prunes most candidates without computing anything. Myers' bit-parallel algorithm does 64 cells per word operation and is what fast `diff` implementations actually run.\n\n**Where you meet it.** Every `git diff`. Fuzzy search and \"did you mean\". Record linkage and deduplication of customer data. Log clustering, where near-identical messages collapse into one pattern. Autocorrect. Plagiarism and clone detection in code review tooling.\n\n**Takeaway.** Know the recurrence cold, then know that nobody runs the plain version on long inputs \u2014 banding and bit-parallelism are the difference between a demo and a tool.",
+  "links": [
+   {
+    "title": "Levenshtein distance",
+    "url": "https://en.wikipedia.org/wiki/Levenshtein_distance"
+   },
+   {
+    "title": "Myers diff algorithm (paper)",
+    "url": "http://www.xmailserver.org/diff2.pdf"
+   }
+  ],
+  "tags": [
+   "strings",
+   "dynamic programming",
+   "diff"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Which edit operation does LCS distance forbid, and why does that make it the right one for diff?",
+  "practice": {
+   "prompt": "Cluster a day of log lines so that messages differing only in ids collapse together \u2014 using a distance threshold rather than a regex per format.",
+   "hint": "Band the DP to width 2k+1 and reject early when the best possible distance already exceeds k. Tokenise first; character-level distance on long lines is both slow and wrong."
+  }
+ },
+ {
+  "slug": "hash-map-internals",
+  "title": "What Your Hash Map Actually Does",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "O(1) is an average over a load factor you do not control and a hash you did not write.",
+  "body_md": "**The two layouts.** *Chaining* puts colliding entries in a per-bucket list; it degrades gracefully and tolerates a high load factor, and it is what Java's `HashMap` does (switching a bucket to a red-black tree past eight entries, to blunt collision attacks). *Open addressing* stores entries directly in the array and probes forward on collision; it is far more cache-friendly and is what Python's `dict`, Go's `map`, Rust's `HashMap` and Abseil's `flat_hash_map` use. Open addressing must keep the load factor well below 1 \u2014 above about 0.85 probe sequences explode.\n\n**Resize is the hidden latency.** Growth doubles the table and rehashes everything: O(n) in one unlucky insert. Amortised O(1) is a true statement about throughput and a false one about p99. If you know the size, pre-size the map \u2014 `make(map[k]v, n)`, `HashMap::with_capacity(n)`, `new HashMap<>(n / 0.75 + 1)`. In a latency-sensitive loop this single line is often the whole optimisation.\n\n**Iteration order is a contract you do not have.** Go randomises it deliberately. Python's `dict` has preserved insertion order since 3.7 and that *is* guaranteed; Java's `HashMap` guarantees nothing and `LinkedHashMap` exists for when you need it. Code that accidentally depends on map order passes locally and fails in CI, which is the point of Go's randomisation.\n\n**The security angle.** If the hash is predictable and collisions are cheap to construct, an attacker turns every lookup into a linear scan \u2014 the 2011 hash-flooding DoS. Modern runtimes seed the hash per process (SipHash in Rust and Python) or randomise it per map. This is also why you should not swap in a \"faster\" non-cryptographic hash for a map keyed on user input without thinking.\n\n**Takeaway.** Pre-size it, do not rely on the order, and remember that your key's `hashCode`/`Hash` implementation is now part of your performance profile.",
+  "links": [
+   {
+    "title": "Swiss Tables design notes (Abseil)",
+    "url": "https://abseil.io/about/design/swisstables"
+   },
+   {
+    "title": "Hash table",
+    "url": "https://en.wikipedia.org/wiki/Hash_table"
+   }
+  ],
+  "tags": [
+   "hashing",
+   "performance",
+   "memory"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What does a hash map's amortised O(1) insert hide, and what one line usually fixes it?",
+  "practice": {
+   "prompt": "Measure insert latency per operation while filling a map to 10 million entries, then repeat with the map pre-sized. Plot the spikes.",
+   "hint": "Record per-insert nanoseconds into a preallocated slice, never into a growing one. The spikes should land on powers of two and vanish in the second run."
+  }
+ },
+ {
+  "slug": "union-find",
+  "title": "Union-Find (Disjoint Set Union)",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "Near-constant-time \"are these two in the same group?\" over a stream of merges.",
+  "body_md": "**The mechanism.** Each element points at a parent; the root identifies the set. `find(x)` walks to the root, `union(a, b)` points one root at the other. Two optimisations make it fast: *path compression* (on the way back from a find, repoint every node straight at the root) and *union by rank or size* (always attach the smaller tree under the larger). Together they give an amortised cost of `O(\u03b1(n))` \u2014 the inverse Ackermann function, which is below 5 for any n you will ever have.\n\n**Why it is not just a graph traversal.** BFS answers connectivity for a *fixed* graph. Union-find answers it for a graph that is *growing*, each query in effectively constant time, with no re-traversal. That incremental property is the whole value. It cannot delete edges \u2014 for that you need link-cut trees or offline processing in reverse.\n\n**Where it shows up.** Kruskal's minimum spanning tree, which is union-find plus a sort. Connected components in image segmentation and flood fill. Deduplicating entities across data sets (\"these three records are the same customer\"). Detecting cycles while adding dependencies one at a time. Type inference unification in compilers is a union-find over type variables. Percolation and network reliability simulations.\n\n**Implementation notes.** Store parents in a flat array indexed by integer id, not a hash map of objects \u2014 the cache behaviour is the difference between fast and merely correct. Path *halving* (point each node at its grandparent during the walk) is a one-line iterative alternative to recursive compression with the same asymptotics and no stack risk. Keep a size array and you get component sizes for free.\n\n**Takeaway.** The moment a problem says \"merge these groups and tell me what is connected\", stop writing a traversal.",
+  "links": [
+   {
+    "title": "Disjoint-set data structure",
+    "url": "https://en.wikipedia.org/wiki/Disjoint-set_data_structure"
+   },
+   {
+    "title": "Kruskal's algorithm",
+    "url": "https://en.wikipedia.org/wiki/Kruskal%27s_algorithm"
+   }
+  ],
+  "tags": [
+   "graphs",
+   "amortised",
+   "clustering"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Which operation can union-find not support, and what makes the supported ones near-constant?",
+  "practice": {
+   "prompt": "Given a stream of \"account A and account B are the same person\" signals, maintain merged identities and answer \"same person?\" in O(1) \u2014 then report the largest identity cluster.",
+   "hint": "Flat parent array with path halving and union by size. The size array gives the largest cluster without a second pass."
+  }
+ },
+ {
+  "slug": "heap-priority-queue",
+  "title": "Binary Heaps",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "A complete tree flattened into an array, giving you the minimum in O(1) and maintenance in O(log n).",
+  "body_md": "**The mechanism.** Store a complete binary tree in an array: the children of index i are at 2i+1 and 2i+2, the parent at (i-1)/2. Maintain the invariant that a parent is never greater than its children. `push` appends and sifts up; `pop` swaps the last element to the root, shrinks, and sifts down. No pointers, perfect cache locality, and no balancing logic \u2014 the array *is* the balance.\n\n**The cost nobody quotes.** Building a heap from n items is O(n), not O(n log n), if you heapify bottom-up instead of pushing one at a time \u2014 the standard `heapify` loop. Peek is O(1). Push and pop are O(log n). Arbitrary deletion and decrease-key need an index map on the side, which is exactly the complication most Dijkstra implementations dodge with lazy deletion.\n\n**What it is not good at.** A heap is not sorted and does not support ordered iteration, range queries, or finding the second smallest without popping. If you need those, you want a balanced tree or a skip list. A heap is also a poor timer wheel: for millions of timers with coarse resolution, a hierarchical timing wheel gives O(1) insert where a heap gives O(log n).\n\n**Where it is load-bearing.** Every priority queue in a scheduler. Dijkstra and A*. Top-k over a stream, bounded at size k. Event loops ordering timers (libuv, Netty's small-timeout path). Merging k sorted files in external sort, which is a heap of file cursors. Rate limiters and retry queues ordered by next-eligible time.\n\n**Takeaway.** When you catch yourself re-sorting a collection after every insertion, you want a heap. When you need the order *and* the lookups, you want something else.",
+  "links": [
+   {
+    "title": "Binary heap",
+    "url": "https://en.wikipedia.org/wiki/Binary_heap"
+   },
+   {
+    "title": "Hashed and hierarchical timing wheels (paper)",
+    "url": "https://www.cs.columbia.edu/~nahum/w6998/papers/sosp87-timing-wheels.pdf"
+   }
+  ],
+  "tags": [
+   "heaps",
+   "scheduling",
+   "arrays"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "Why is building a heap from n items O(n) rather than O(n log n)?",
+  "practice": {
+   "prompt": "Merge k sorted log files by timestamp into one stream without loading them into memory, then report how the cost scales with k.",
+   "hint": "A heap of one cursor per file. Each emitted line costs O(log k), so the total is O(n log k) \u2014 compare that with concatenate-then-sort."
+  }
+ },
+ {
+  "slug": "trie-radix-tree",
+  "title": "Tries and Radix Trees",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "A tree keyed on the characters of the key, where the path to a node spells its prefix.",
+  "body_md": "**The mechanism.** Each edge carries a character; each node represents the prefix spelled by the path to it. Lookup is `O(key length)` and \u2014 crucially \u2014 independent of how many keys are stored. That is the property a hash map cannot match: a trie answers \"every key with this prefix\" and \"the longest stored prefix of this key\" by walking, where a hash map would have to scan everything.\n\n**The space fix.** A naive trie allocates a node per character with an array of child pointers, which is enormous. A *radix tree* (PATRICIA trie) collapses every chain of single-child nodes into one edge holding a string, cutting nodes dramatically. An *adaptive radix tree* (ART) goes further, switching node representations by fan-out (4, 16, 48, 256 children) so small nodes stay small; it is the index structure in HyperDB and several modern in-memory stores.\n\n**Longest-prefix match is the killer feature.** IP routing tables are radix tries \u2014 that is what `/24` versus `/16` resolution *is*, and the Linux kernel's FIB is an LPC-trie. HTTP routers resolve `/users/:id/posts` against a radix tree of path segments (gin, echo, Next.js, httprouter all do this). Feature flag and permission prefixes resolve the same way.\n\n**Where else you meet it.** Autocomplete and type-ahead. Dictionary compression and spell-checking over a DAWG (a trie with merged suffixes). `etcd` and Redis key-space prefix scans. Elasticsearch's term dictionary is an FST, which is the same idea taken further. Even git's packed object lookup uses a prefix-partitioned fanout table.\n\n**Takeaway.** If the question is about prefixes \u2014 completions, routes, subnets, namespaces \u2014 a hash map is the wrong structure no matter how fast it is.",
+  "links": [
+   {
+    "title": "Trie",
+    "url": "https://en.wikipedia.org/wiki/Trie"
+   },
+   {
+    "title": "The Adaptive Radix Tree (paper)",
+    "url": "https://db.in.tum.de/~leis/papers/ART.pdf"
+   }
+  ],
+  "tags": [
+   "strings",
+   "routing",
+   "indexes"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What two queries does a trie answer that a hash map cannot, however fast the hash is?",
+  "practice": {
+   "prompt": "Build a router that resolves /a/:id/b style patterns against a request path, preferring the most specific match, in time proportional to the path length.",
+   "hint": "Radix tree over path segments with three child classes per node: static, parameter, wildcard. Try them in that order."
+  }
+ },
+ {
+  "slug": "ring-buffer",
+  "title": "Ring Buffers",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "A fixed array and two indices \u2014 the queue that never allocates and never garbage-collects.",
+  "body_md": "**The mechanism.** One preallocated array, a read index and a write index, both advancing forever and masked to the array size (`i & (n-1)`, which is why capacities are powers of two). Full and empty are distinguished by comparing the raw counters rather than the masked ones. No allocation after construction, no pointer chasing, and the memory is contiguous \u2014 the hardware prefetcher loves it.\n\n**The concurrency win.** With a single producer and a single consumer, a ring buffer needs no locks at all: the producer owns the write index, the consumer owns the read index, and a release/acquire pair on the two counters is enough. The remaining hazard is *false sharing* \u2014 put the two indices on the same cache line and the cores fight over it, costing an order of magnitude. Pad them apart. The LMAX Disruptor is this structure plus careful padding, and it moved millions of messages a second on 2011 hardware.\n\n**Bounded means you must choose.** When the buffer is full there are only three honest options: block the producer (backpressure), drop the newest, or drop the oldest. Picking one is a product decision, not an implementation detail \u2014 metrics pipelines usually drop, audit logs must block. A queue that grows instead is just deferring the decision until memory runs out.\n\n**Where it runs.** Audio and video pipelines, where an allocation mid-callback is a glitch. Kernel-to-userspace transport: io_uring's submission and completion queues, eBPF's perf and ring buffers, network card descriptor rings. Log appenders and trace exporters. `tokio`'s and Go's channel internals. Linux's `kfifo`.\n\n**Takeaway.** If the hot path must not allocate and the queue must not grow without bound, this is the structure \u2014 and padding the indices is not optional.",
+  "links": [
+   {
+    "title": "Circular buffer",
+    "url": "https://en.wikipedia.org/wiki/Circular_buffer"
+   },
+   {
+    "title": "The LMAX Disruptor (technical paper)",
+    "url": "https://lmax-exchange.github.io/disruptor/disruptor.html"
+   }
+  ],
+  "tags": [
+   "concurrency",
+   "queues",
+   "systems"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What are the only three honest responses when a bounded ring buffer is full?",
+  "practice": {
+   "prompt": "Implement a single-producer single-consumer ring buffer with no locks, then demonstrate the cost of false sharing by putting both indices on one cache line and measuring.",
+   "hint": "Power-of-two capacity and masking. Expect a large throughput difference once the two indices are 64 bytes apart."
+  }
+ },
+ {
+  "slug": "skip-list",
+  "title": "Skip Lists",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "A sorted linked list with express lanes, balanced by coin flips instead of rotations.",
+  "body_md": "**The mechanism.** Keep the elements in a sorted linked list, then build sparser lists above it: each node is promoted to the next level with probability p (usually 1/2 or 1/4). Search starts at the top, moves right while the next key is smaller, drops a level when it is not. Expected height is `log_{1/p} n` and expected search, insert and delete are all O(log n). There is no rebalancing \u2014 the randomness does it.\n\n**Why anyone picks it over a balanced tree.** The code is dramatically shorter: no rotations, no colour invariants, no parent pointers. Insertion touches only forward pointers, which makes lock-free and fine-grained-locking variants far more tractable than a concurrent red-black tree. And range scans are a plain walk of the bottom list, which is why ordered-set workloads like it.\n\n**The honest downsides.** Memory overhead of roughly `1/(1-p)` pointers per element. Cache behaviour is worse than a B-tree, because each level hop is a pointer dereference into unrelated memory \u2014 which is exactly why on-disk indexes are B+ trees and in-memory ordered indexes are often skip lists. The bounds are probabilistic, so a pathological run is possible, if astronomically unlikely.\n\n**Where it runs in production.** Redis sorted sets (`ZSET`) are a skip list plus a hash map, which is how `ZRANGE` and `ZSCORE` are both fast. LevelDB and RocksDB memtables are skip lists, chosen for concurrent insert with single-threaded compaction reading. Apache Lucene uses skip lists inside posting lists to jump ahead during intersection.\n\n**Takeaway.** When you need ordered operations plus concurrent writers and the data is in memory, a skip list buys you most of a balanced tree for a fraction of the code.",
+  "links": [
+   {
+    "title": "Skip list",
+    "url": "https://en.wikipedia.org/wiki/Skip_list"
+   },
+   {
+    "title": "Pugh's original paper",
+    "url": "https://15721.courses.cs.cmu.edu/spring2018/papers/08-oltpindexes1/pugh-skiplists-cacm1990.pdf"
+   }
+  ],
+  "tags": [
+   "ordered sets",
+   "redis",
+   "concurrency"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What does a skip list use instead of rotations to stay balanced, and what does that buy concurrent writers?",
+  "practice": {
+   "prompt": "Implement ZADD/ZRANGE over a skip list plus a hash map, and explain which operation each structure serves.",
+   "hint": "The hash map gives O(1) score lookup by member; the skip list gives ordered traversal and rank. Both must be updated in one logical operation."
+  }
+ },
+ {
+  "slug": "b-plus-tree",
+  "title": "B+ Trees",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "Wide, shallow, and page-shaped: the structure every relational index is actually made of.",
+  "body_md": "**The mechanism.** A balanced tree whose nodes are the size of a disk page (commonly 8KB in Postgres, 16KB in InnoDB). Internal nodes hold only keys and child pointers; *all* the data lives in the leaves, which are linked together. High fan-out means low height: at a few hundred keys per node, a billion rows sit three or four levels deep, so a lookup is three or four page reads \u2014 and the top levels are always in cache.\n\n**B+ versus B.** A plain B-tree stores values in internal nodes too, which lowers fan-out and makes range scans awkward. B+ keeps internal nodes pure routing information, so more keys fit per page and the linked leaf level makes `WHERE created_at BETWEEN ...` a sequential walk instead of a tree traversal per row. That is why \"B-tree index\" in a database almost always means B+.\n\n**What this explains about your indexes.** Composite index column order matters because the tree is sorted lexicographically \u2014 `(a, b)` serves `WHERE a = ? AND b = ?` and `WHERE a = ?`, but not `WHERE b = ?`. Random UUID primary keys cause page splits all over the tree where sequential ids append to the rightmost page, which is why UUIDv7 and ULIDs exist. And an index-only scan is possible exactly when every column you need is already in the leaf.\n\n**Versus the LSM tree.** B+ updates in place: reads are cheap and predictable, writes cost a random page write plus WAL. LSM never updates in place: writes are sequential and cheap, reads must consult several files. Postgres, MySQL/InnoDB, SQLite and nearly every OLTP engine choose B+; RocksDB, Cassandra and ScyllaDB choose LSM.\n\n**Takeaway.** Index design arguments \u2014 column order, key shape, covering columns, fill factor \u2014 are all arguments about the layout of pages in this one structure.",
+  "links": [
+   {
+    "title": "B+ tree",
+    "url": "https://en.wikipedia.org/wiki/B%2B_tree"
+   },
+   {
+    "title": "PostgreSQL: B-tree index internals",
+    "url": "https://www.postgresql.org/docs/current/btree.html"
+   }
+  ],
+  "tags": [
+   "indexes",
+   "databases",
+   "storage"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Why do B+ trees keep all values in the leaves, and what does that make cheap?",
+  "practice": {
+   "prompt": "Design the indexes for a table queried by (tenant_id, created_at) ranges and occasionally by email alone. Justify each index's column order, and say which queries become index-only scans.",
+   "hint": "Lexicographic order decides everything. Ask what prefix each query supplies, and what columns it needs back."
+  }
+ },
+ {
+  "slug": "lru-cache-structure",
+  "title": "The LRU Cache, and Why Real Caches Are Not LRU",
+  "kind": "data-structure",
+  "category": "data structures",
+  "one_liner": "A hash map plus an intrusive list gives O(1) eviction \u2014 and loses to a scan every time.",
+  "body_md": "**The mechanism.** A hash map from key to node, and a doubly linked list of those same nodes in recency order. A hit unlinks the node and moves it to the head, O(1). An insert past capacity drops the tail, O(1). The subtlety is that the map must store *nodes*, not values, or the unlink becomes a search and the structure quietly becomes O(n).\n\n**The failure mode.** LRU assumes recency predicts reuse. One full table scan, one backup job, one crawler walking every page, and the entire working set is evicted by data nobody will request again. This is not rare \u2014 it is a nightly occurrence in most systems, and it is why a cache that benchmarks beautifully can have a terrible hit rate in production.\n\n**What real systems use instead.** *Segmented LRU / LRU-K*: an item must be touched twice before it earns a place in the protected segment, so a one-off scan never evicts hot data \u2014 Postgres and MySQL both approximate this. *CLOCK*: a reference bit swept in a circle, approximating LRU without the list, which is what most OS page caches do. *W-TinyLFU*: a tiny frequency sketch decides whether a candidate deserves to replace the eviction victim; Caffeine implements it and beats LRU on nearly every trace.\n\n**Measuring it honestly.** Hit *rate* is the metric that matters, not hit count, and it must be measured under production traffic shapes including the batch jobs. Track evictions and the age of evicted entries; a healthy cache evicts old things, a thrashing one evicts things it loaded minutes ago. Size the cache from the working-set curve, not from a round number of megabytes.\n\n**Takeaway.** Write the hash-map-plus-list version \u2014 it is the classic for a reason \u2014 then admit it is a baseline, and pick an admission policy before you ship it.",
+  "links": [
+   {
+    "title": "Caffeine: efficiency and W-TinyLFU",
+    "url": "https://github.com/ben-manes/caffeine/wiki/Efficiency"
+   },
+   {
+    "title": "Cache replacement policies",
+    "url": "https://en.wikipedia.org/wiki/Cache_replacement_policies"
+   }
+  ],
+  "tags": [
+   "caching",
+   "eviction",
+   "performance"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What single workload destroys a plain LRU cache, and which policy change defends against it?",
+  "practice": {
+   "prompt": "Implement an O(1) LRU, then replay a trace that is 90% hot keys and 10% a sequential scan. Measure the hit rate, then add a two-segment admission rule and measure again.",
+   "hint": "Protected and probationary segments: an entry is promoted only on its second hit. The scan never leaves probation."
+  }
+ },
+ {
+  "slug": "bulkhead-isolation",
+  "title": "Bulkheads",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "Give each dependency its own pool, so one sick downstream cannot drown the others.",
+  "body_md": "**The mechanism.** A ship survives a hull breach because its hold is divided into compartments. The software version: separate the resources used to call each dependency \u2014 separate thread pools, separate connection pools, separate semaphores, sometimes separate processes or pods. When dependency A hangs, only A's compartment fills up. Requests that do not touch A keep flowing.\n\n**The failure it prevents.** With one shared pool of 200 threads, a dependency that goes from 20ms to 20 seconds does not just break its own endpoint. Every thread ends up parked on it, and endpoints with no relationship to A start timing out. That is resource exhaustion, and it is the single most common way one small outage becomes a total one.\n\n**Sizing the compartments.** Little's Law does the work: `concurrency = throughput \u00d7 latency`. A dependency serving 50 rps at 40ms needs 2 concurrent slots in steady state; give it 10 for headroom, not 200. Summing every compartment to more than the host can run defeats the point \u2014 bulkheads only isolate if the total is bounded.\n\n**Where it shows up.** Hystrix and resilience4j made thread-pool bulkheads mainstream; Envoy and Istio do it with per-upstream connection and request limits. Kubernetes resource requests and limits are bulkheads at the pod level. Separate read replicas per workload class are bulkheads. So is a dedicated queue per tenant \u2014 which is how you stop one noisy customer from stalling everyone else.\n\n**Takeaway.** Timeouts bound a single call; bulkheads bound the blast radius of many. Set the timeout first, then the compartment, then the circuit breaker.",
+  "links": [
+   {
+    "title": "Bulkhead pattern (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/bulkhead"
+   },
+   {
+    "title": "Addressing cascading failures (Google SRE)",
+    "url": "https://sre.google/sre-book/addressing-cascading-failures/"
+   }
+  ],
+  "tags": [
+   "resilience",
+   "isolation",
+   "capacity"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What does a bulkhead bound that a timeout does not?",
+  "practice": {
+   "prompt": "An API calls search, billing and recommendations. Recommendations starts taking 15s. Design the isolation so checkout stays up, and size each pool with Little's Law.",
+   "hint": "Per-dependency semaphores sized from measured throughput \u00d7 target latency, plus a fallback for the non-critical call. State what the user sees when the recommendation compartment is full."
+  }
+ },
+ {
+  "slug": "cqrs-read-models",
+  "title": "CQRS and Read Models",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "Stop making one schema serve both the write that must be correct and the read that must be fast.",
+  "body_md": "**The mechanism.** Command Query Responsibility Segregation splits the write path from the read path. Commands validate invariants against a normalised model built for correctness. Queries are served from one or more *read models* \u2014 denormalised, pre-joined projections shaped exactly like the screens that use them, rebuilt from the write side asynchronously.\n\n**The problem it actually solves.** A normalised schema that enforces your invariants is almost never the shape your dashboard wants, so you add joins, then indexes to support the joins, then caches in front of the joins. Each addition slows writes. CQRS stops the tug of war by admitting the two workloads are different and giving each its own storage.\n\n**The cost you are accepting.** The read model is eventually consistent, so the user can submit a form and not see their change. That is a product decision, not a technical footnote \u2014 either the UI reflects the command optimistically, or you route read-your-writes queries to the write side, or you tell the user. Most CQRS failures are really this conversation never having happened.\n\n**Scope it small.** CQRS does not require event sourcing, a message bus, or separate services \u2014 a materialised view refreshed on commit is CQRS. Apply it to the two or three screens that are actually slow, not to the whole system. A read model is also disposable by design: if a projection is wrong, delete it and rebuild from the source of truth.\n\n**Takeaway.** Use it where the read and write shapes genuinely conflict, and decide what a stale read looks like before you build the projection.",
+  "links": [
+   {
+    "title": "Fowler: CQRS",
+    "url": "https://martinfowler.com/bliki/CQRS.html"
+   },
+   {
+    "title": "CQRS pattern (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs"
+   }
+  ],
+  "tags": [
+   "read models",
+   "consistency",
+   "scaling"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What does CQRS hand you to deal with, in exchange for the read performance?",
+  "practice": {
+   "prompt": "An order service's admin dashboard runs a seven-table join that takes 4s. Design a read model for it: what triggers the projection, what happens when it lags, and how an operator rebuilds it.",
+   "hint": "Name the staleness budget first. Then decide between synchronous update in the same transaction, a change feed, or a periodic rebuild \u2014 each has a different failure story."
+  }
+ },
+ {
+  "slug": "claim-check",
+  "title": "Claim Check",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "Put the payload in object storage and send the receipt through the queue.",
+  "body_md": "**The mechanism.** When a message is large, write the body to a blob store, and publish a small message containing only a reference \u2014 bucket, key, size, checksum, and whatever the consumer needs for routing. The consumer fetches the body only if and when it needs it. The queue carries metadata, not megabytes.\n\n**Why the limits exist.** SQS caps a message at 256KB, SNS the same, Kafka defaults to 1MB, Azure Service Bus to 256KB on the standard tier. These are not arbitrary: brokers replicate every message, often to disk and across zones, and a 50MB payload multiplies that cost by the replication factor and blocks the partition for every other consumer behind it.\n\n**The details that bite.** Lifecycle: the blob must outlive the message, including the retry and dead-letter window, so the TTL on the bucket must exceed the maximum redelivery age. Ordering: the reference and the blob are two writes, so write the blob *first* and publish second, or a consumer can race you to a missing key. Cleanup: deleting on successful consumption breaks replay; a storage lifecycle rule is usually the honest answer. Security: the reference is a capability, so scope the credentials and consider a pre-signed URL with a short expiry.\n\n**Where it is standard.** The AWS SQS Extended Client and the Azure Service Bus equivalent implement exactly this, transparently. CI systems pass build artifacts this way. Image and video pipelines pass S3 keys, never frames. Webhook providers switch to a claim check above a size threshold \u2014 and so should yours, rather than rejecting the request.\n\n**Takeaway.** A queue is a coordination mechanism, not a file transfer. Send the pointer.",
+  "links": [
+   {
+    "title": "Claim-check pattern (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/claim-check"
+   },
+   {
+    "title": "SQS Extended Client (large payloads)",
+    "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-s3-messages.html"
+   }
+  ],
+  "tags": [
+   "messaging",
+   "object storage",
+   "queues"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "In a claim check, which must be written first \u2014 the blob or the message \u2014 and why?",
+  "practice": {
+   "prompt": "A service receives 40MB inspection reports and must process them asynchronously. Design the claim check: bucket lifecycle, retry window, failure cleanup, and what the dead-letter entry contains.",
+   "hint": "The blob TTL must exceed max retries \u00d7 visibility timeout. Decide explicitly whether a dead-lettered message keeps its blob \u2014 usually yes, or the operator cannot debug it."
+  }
+ },
+ {
+  "slug": "anti-corruption-layer",
+  "title": "Anti-Corruption Layer",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "A translation boundary that stops someone else's model from leaking into yours.",
+  "body_md": "**The mechanism.** When your system must talk to a legacy system, a third-party API or another team's service, do not let its types cross your boundary. Put a thin layer at the edge whose only job is translation: their `CUST_REC_T` with its seventeen status codes becomes your `Customer` with three states, and nothing inside knows the other shape exists.\n\n**The decay it prevents.** Without it, the foreign model spreads. Their nullable fields become your nullable fields; their status enum shows up in your database; their retry semantics end up in your controller. Six months later the integration cannot be replaced because the whole codebase has their vocabulary baked in \u2014 and the vendor's v2 API is a rewrite rather than a swap of one module.\n\n**What belongs in the layer.** Field and vocabulary mapping. Unit and timezone normalisation. Error translation \u2014 their HTTP 200 with `{\"error\": ...}` becomes your typed failure. Timeouts, retries and the circuit breaker for that dependency. Defaulting for fields they will add later. And, importantly, a test suite with *their* recorded responses as fixtures, which is what lets you upgrade confidently.\n\n**Where it pays off most.** Strangler fig migrations, where the ACL is what lets new code have a clean model while the old system is still authoritative. Payment, shipping and tax providers, where you will change vendors. Anything with an industry schema \u2014 HL7, EDI, ISO 20022 \u2014 which is designed for interchange, not for your domain.\n\n**Takeaway.** The question is not whether the external model is bad; it is whether it is *yours*. One translation module is cheaper than a vocabulary you cannot change.",
+  "links": [
+   {
+    "title": "Anti-corruption layer (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer"
+   },
+   {
+    "title": "Fowler: Strangler Fig Application",
+    "url": "https://martinfowler.com/bliki/StranglerFigApplication.html"
+   }
+  ],
+  "tags": [
+   "integration",
+   "domain modelling",
+   "migration"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What leaks across the boundary when you skip an anti-corruption layer, and what does that cost later?",
+  "practice": {
+   "prompt": "You are integrating a shipping provider whose API returns 200 with an error body, uses imperial units, and has four overlapping status codes. Design the layer, including how you test it without calling the vendor.",
+   "hint": "Recorded fixtures of real responses, a typed error enum of your own, and one place where units are converted. Name what happens when they add a fifth status."
+  }
+ },
+ {
+  "slug": "deploy-release-decoupling",
+  "title": "Decoupling Deploy from Release",
+  "kind": "pattern",
+  "category": "deployment",
+  "one_liner": "Shipping code and turning it on are two separate events, and only one of them should be scary.",
+  "body_md": "**The mechanism.** Deploy the code dark, behind a flag that is off. Release by flipping the flag, for one user, then one percent, then everyone. Rollback becomes a config change measured in seconds rather than a redeploy measured in minutes \u2014 and crucially, the rollback does not have to revert the other eleven changes that shipped in the same build.\n\n**Why this changes how teams work.** Trunk-based development only works if unfinished code can live in main safely, and flags are what make that true. Long-lived feature branches exist mostly because teams have no other way to keep work hidden; the merge pain they cause is self-inflicted. With flags, the branch lives for hours and the risk moves to a dial you control in production.\n\n**The discipline nobody keeps.** Flags are debt with an interest rate. Four kinds exist and they have different lifetimes: *release* flags (days, delete after rollout), *experiment* flags (one experiment), *ops* kill switches (permanent, deliberately), and *permission* flags (permanent, but that is just entitlement logic). Every flag multiplies the code paths you are theoretically testing; untracked ones are a genuine outage source. Put an owner and an expiry on each, and fail the build when a release flag is older than its expiry.\n\n**Database changes do not flag cleanly.** Schema is shared state, so pair this with expand-contract: deploy the additive migration, deploy code that writes both and reads the old, flip to reading the new, then contract. The flag controls the *read* path, which is the only part that can be flipped instantly.\n\n**Takeaway.** Deploy continuously, release deliberately, and schedule the deletion of the flag in the same pull request that adds it.",
+  "links": [
+   {
+    "title": "Fowler: Feature Toggles",
+    "url": "https://martinfowler.com/articles/feature-toggles.html"
+   },
+   {
+    "title": "Google SRE: canarying releases",
+    "url": "https://sre.google/workbook/canarying-releases/"
+   }
+  ],
+  "tags": [
+   "feature flags",
+   "ci-cd",
+   "risk"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "Which four kinds of feature flag have genuinely different lifetimes?",
+  "practice": {
+   "prompt": "Plan the rollout of a new pricing engine that must run in parallel with the old one for two weeks and be comparable. Say what the flag controls, what you measure, and when the flag dies.",
+   "hint": "Shadow mode first \u2014 compute both, serve the old, log the difference. The flag's deletion ticket is part of the rollout plan, not a follow-up."
+  }
+ },
+ {
+  "slug": "dead-letter-queue",
+  "title": "Dead Letter Queues and Poison Messages",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "A message that can never succeed must leave the queue, or it blocks everything behind it.",
+  "body_md": "**The mechanism.** After a message has been delivered and failed N times, the broker moves it to a separate queue instead of redelivering it forever. The main queue keeps flowing; the failures are preserved for inspection, replay, or deletion. SQS calls it a redrive policy, RabbitMQ a dead-letter exchange, Kafka has no built-in version so consumers implement it by producing to a `.DLQ` topic.\n\n**The failure it prevents.** A poison message \u2014 malformed payload, a referenced row that was deleted, a bug on one code path \u2014 fails, is redelivered, fails again, forever. On an ordered partition it blocks every message behind it, and your lag graph climbs while throughput is zero. Without a DLQ, the operational fix is to delete the queue, which also deletes the good messages.\n\n**Designing the entry, not just the queue.** A dead letter is only useful if it carries why it died: the original payload, the error and stack, the attempt count, the first and last failure timestamps, the consumer version, and the trace id. Without those, the DLQ becomes a write-only graveyard nobody can act on. Alert on the DLQ *rate*, not depth \u2014 a steady trickle is a bug, a sudden spike is an incident.\n\n**Replay is the point.** The DLQ exists so that after the fix, the messages can be reprocessed. That means the consumer must be idempotent (some of those messages partially succeeded) and the replay tool must be rate-limited so draining 100k messages does not take out the downstream that was never the problem. Decide the retention \u2014 14 days is typical \u2014 and know that expiry is silent data loss.\n\n**Takeaway.** Every queue needs a DLQ, an alert on its arrival rate, and a tested replay path. Two out of three is the usual, and the missing one is always replay.",
+  "links": [
+   {
+    "title": "Amazon SQS dead-letter queues",
+    "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+   },
+   {
+    "title": "RabbitMQ: dead letter exchanges",
+    "url": "https://www.rabbitmq.com/docs/dlx"
+   }
+  ],
+  "tags": [
+   "messaging",
+   "reliability",
+   "operations"
+  ],
+  "difficulty": "beginner",
+  "recall_q": "Why alert on a dead-letter queue's arrival rate rather than its depth?",
+  "practice": {
+   "prompt": "Design the dead-letter path for an order-events consumer: retry policy, what the DLQ entry contains, the alert, and a replay tool that cannot take down the downstream.",
+   "hint": "Distinguish retryable (downstream 503) from terminal (schema violation) failures \u2014 only one of them deserves five attempts. Rate-limit the replay and make the consumer idempotent."
+  }
+ },
+ {
+  "slug": "cache-aside",
+  "title": "Cache-Aside, Write-Through, Write-Behind",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "Three ways to put a cache next to a database, with three different ways to serve stale data.",
+  "body_md": "**Cache-aside (lazy loading).** The application checks the cache, and on a miss reads the database and populates the cache itself. The cache knows nothing about the database. It is the default for a reason: simple, resilient (a cache outage degrades to slow, not broken), and it only caches what is actually requested. The costs are a cold start after every flush, and a three-way race on concurrent read-and-update that can leave a stale value cached indefinitely.\n\n**Write-through and write-behind.** *Write-through* writes cache and database together, so the cache is never stale \u2014 at the price of slower writes and caching data nobody reads. *Write-behind* writes the cache and flushes to the database asynchronously, which is fast and is also the only one of the three that can lose committed data; use it for counters and metrics, not for orders.\n\n**Invalidation is the hard part, and deletion beats update.** On a write, *delete* the cache key rather than overwriting it: two concurrent writers can interleave and leave the cache holding the older value, while delete-then-read-through always converges. For stronger guarantees there is delayed double-delete, or binding invalidation to the database change feed so it cannot be forgotten in a code path.\n\n**The two failure modes to plan for.** *Stampede*: a hot key expires and a thousand requests hit the database at once \u2014 fix with a lock or single-flight so one request refreshes while others serve the old value. *Avalanche*: many keys expire together because they were written together \u2014 fix by jittering every TTL. Both are cheap to prevent and expensive to discover.\n\n**Takeaway.** Start with cache-aside, delete rather than update, jitter the TTLs, and single-flight the refresh. Reach for write-through only when a stale read is genuinely unacceptable.",
+  "links": [
+   {
+    "title": "Cache-aside pattern (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+   },
+   {
+    "title": "Redis: client-side caching",
+    "url": "https://redis.io/docs/latest/develop/clients/client-side-caching/"
+   }
+  ],
+  "tags": [
+   "caching",
+   "consistency",
+   "latency"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "On a write, why delete the cache key instead of updating it?",
+  "practice": {
+   "prompt": "A product page is read 5,000 times a second and edited a few times an hour. Choose a strategy, then write down exactly what a user sees in the second after an edit, and what happens when the key expires under full load.",
+   "hint": "Cache-aside with delete-on-write, jittered TTL, and single-flight refresh. The interesting answer is the one about the second after the edit."
+  }
+ },
+ {
+  "slug": "backends-for-frontends",
+  "title": "Backends for Frontends",
+  "kind": "pattern",
+  "category": "architecture",
+  "one_liner": "One shared general-purpose API serves every client badly; give each client surface its own thin backend.",
+  "body_md": "**The mechanism.** Instead of one API that every client negotiates with, each client type \u2014 web, iOS, Android, partner integrations \u2014 gets its own backend. That backend calls the same downstream services but shapes, aggregates and trims the response for exactly one consumer, and it is owned by the team that owns that client.\n\n**The problem it solves.** A shared API accumulates every client's requirements at once: query parameters that only mobile uses, fields only the web app reads, versioning constraints driven by the slowest-updating client. Mobile suffers most \u2014 ten round trips over a high-latency link to render one screen, each returning fields it discards. A BFF turns that into one request returning one screen's worth of data.\n\n**The trap.** A BFF is a *presentation* layer. The moment business rules start living in it, you have duplicated the domain per client and the rules will diverge. Keep it to aggregation, field selection, shaping and client-specific auth. If three BFFs need the same new rule, that rule belongs downstream. Duplication *between* BFFs is acceptable and expected; duplication *of domain logic* is the failure.\n\n**The alternatives.** GraphQL solves the over-fetching half with one endpoint and a client-specified query \u2014 at the cost of query-complexity limits, caching that no longer works at the HTTP layer, and an N+1 problem you now own. An API gateway with response transformation covers simple cases without a new service. BFFs win when clients differ in *behaviour*, not merely in fields.\n\n**Takeaway.** Count the round trips your mobile client needs for its main screen. If the number is embarrassing, this is the pattern \u2014 and the rule is that nothing but shaping goes in it.",
+  "links": [
+   {
+    "title": "Backends for Frontends (Azure Architecture Center)",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends"
+   },
+   {
+    "title": "Sam Newman: Backends For Frontends",
+    "url": "https://samnewman.io/patterns/architectural/bff/"
+   }
+  ],
+  "tags": [
+   "api design",
+   "mobile",
+   "microservices"
+  ],
+  "difficulty": "intermediate",
+  "recall_q": "What is the one kind of logic that must never move into a BFF?",
+  "practice": {
+   "prompt": "A mobile home screen makes 11 API calls. Design a BFF for it: what it aggregates, what it caches, what happens when one downstream is slow, and where you draw the line against business logic.",
+   "hint": "Parallel fan-out with a per-dependency timeout and partial responses \u2014 the screen renders with a section missing rather than failing. Name the owning team."
+  }
  }
 ]
