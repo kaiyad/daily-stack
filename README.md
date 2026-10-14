@@ -161,15 +161,78 @@ Three writers, tried in this order, and the page tells the reader which one ran:
 | `gemini` | no file, no Anthropic key, `GEMINI_API_KEY` set | vetted, or probed if ungrounded |
 
 **`written` is the intended path.** You write the pieces ahead of time - in a
-Claude Code session, in batches - and commit them. `db/seed/shelf/README.md`
-has the format and `EXAMPLE.json.txt` the shape; a file is validated against
+Claude Code session, in batches - and commit them. A file is validated against
 the same schema the models are held to, so a malformed one fails before Friday
-rather than rendering wrong. `npm run shelf:status` is the report that matters:
-it lists the next thirteen Fridays and which writer each will use, so an empty
-queue is visible weeks out instead of on the night.
+rather than rendering wrong.
+
+### Refilling the queue
+
+Do this when `shelf:status` shows Fridays that are not `written` - monthly is a
+comfortable cadence for a four-piece batch.
+
+**1. See what is missing.**
 
 ```bash
-npm run shelf:status          # what the next quarter will publish, and how
+npm run shelf:status 13
+```
+
+Every line that says anything other than `written` or `published` is a Friday a
+model will have to write. A committed file that has gone invalid reads
+`INVALID` and counts as a gap, with the offending field named - it would throw
+on the night rather than fall back, so it is not cover.
+
+**2. Write the pieces.** In a Claude Code session, in this repo:
+
+> Read `db/seed/shelf/README.md` and `db/seed/shelf/EXAMPLE.json.txt`. Write
+> the shelf piece for `<slug>` - look it up in `db/seed/books.json` for the
+> title, author, year and the angle to hold. Follow `WRITE_SYSTEM` in
+> `src/pipeline/writers/piece.ts` for length, shape and the hard rules. Search
+> the web for the concept explainers, reviews including a dissenting one,
+> primary sources, an author interview, and anything since revised; use only
+> URLs you actually retrieved, and fetch each one to confirm it is the page you
+> think it is. Save it as `db/seed/shelf/<slug>.json`.
+
+The links are the reason to do it this way: in a session the URLs are fetched
+and read, not recalled, which is a stronger guarantee than either model path
+can give on its own.
+
+**3. Check them.**
+
+```bash
+npm run shelf:status 13       # the Friday should now read `written`
+npm test                      # every committed piece is parsed by the suite
+```
+
+**4. Commit them.** This is the step that actually publishes. The Friday job
+runs `actions/checkout`, so it only sees pieces that are in the repo - a file
+sitting uncommitted on your machine is invisible to it and that Friday will
+fall back to a model, or to nothing.
+
+```bash
+git add db/seed/shelf/
+git commit -m "shelf: write the next four pieces"
+git push
+```
+
+**5. Optional - read it as a reader would.** The site only renders frozen
+pieces, so to see one laid out, freeze it against your local database (never
+the hosted one) and open `/shelf`:
+
+```bash
+npm run shelf -- --date 2026-10-16            # draft; prints words, links, dropped
+npm run shelf -- --date 2026-10-16 --freeze   # local only
+npm run dev
+```
+
+A frozen row cannot be edited or deleted, so if you want to iterate on the
+wording afterwards, rebuild the draft before freezing. To start the local shelf
+over, the migration has to be forgotten as well as the tables dropped -
+`db:migrate` skips anything already recorded in `schema_migrations`:
+
+```sql
+drop table shelf_editions, books cascade;
+drop function if exists enforce_shelf_not_frozen() cascade;
+delete from schema_migrations where name = '0004_shelf.sql';
 ```
 
 **The model paths exist so a missed refill still publishes something.** Both

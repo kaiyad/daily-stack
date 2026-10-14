@@ -29,22 +29,35 @@ async function main(): Promise<void> {
     [from, weeks],
   );
 
+  // A committed file that no longer parses is worse than a missing one: the
+  // build throws on the night instead of falling back, so it is reported as a
+  // gap rather than as cover.
+  const invalid = new Set<string>();
   for (const slug of writtenSlugs()) {
     const parsed = Piece.safeParse(JSON.parse(fs.readFileSync(`${DIR}/${slug}.json`, "utf8")));
-    if (!parsed.success) {
-      log.error(`${DIR}/${slug}.json is invalid: ${parsed.error.issues[0]?.message}`);
-    }
+    if (parsed.success) continue;
+    invalid.add(slug);
+    const issue = parsed.error.issues[0];
+    log.error(
+      `${DIR}/${slug}.json is invalid: ${issue?.path.join(".") || "(root)"}: ${issue?.message}`,
+    );
   }
 
   let gaps = 0;
   for (const row of scheduled) {
-    const by = row.published ? "published" : (pickWriter(row.slug)?.provenance ?? "NOTHING");
+    const by = row.published
+      ? "published"
+      : invalid.has(row.slug)
+        ? "INVALID"
+        : (pickWriter(row.slug)?.provenance ?? "NOTHING");
     if (!row.published && by !== "written") gaps++;
     log.info(`${row.d}  ${by.padEnd(10)} ${row.genre.padEnd(12)} ${row.slug}`);
   }
 
-  const written = writtenSlugs().length;
-  log.info(`${written} piece(s) written, ${gaps} of the next ${scheduled.length} Fridays will fall back`);
+  const written = writtenSlugs().filter((slug) => !invalid.has(slug)).length;
+  log.info(
+    `${written} piece(s) written, ${gaps} of the next ${scheduled.length} Fridays will fall back`,
+  );
   if (gaps) {
     log.warn(
       env.anthropicKey || env.geminiKey
