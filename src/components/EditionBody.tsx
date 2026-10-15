@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import type { Edition, EntryRow } from "../lib/editions";
 
 const STORAGE_KEY = "daily-stack:read";
+const HIDE_KEY = "daily-stack:hide-read";
 
 function loadRead(): Set<string> {
   try {
@@ -61,6 +62,45 @@ const readStore = {
   },
 };
 
+/** Whether read entries are hidden, stored the same way and for the same reason. */
+const hideStore = {
+  cache: null as boolean | null,
+  listeners: new Set<() => void>(),
+
+  subscribe(listener: () => void): () => void {
+    hideStore.listeners.add(listener);
+    return () => {
+      hideStore.listeners.delete(listener);
+    };
+  },
+
+  getSnapshot(): boolean {
+    if (hideStore.cache === null) {
+      try {
+        hideStore.cache = localStorage.getItem(HIDE_KEY) === "1";
+      } catch {
+        hideStore.cache = false;
+      }
+    }
+    return hideStore.cache;
+  },
+
+  getServerSnapshot(): boolean {
+    return false;
+  },
+
+  toggle(): void {
+    const next = !hideStore.getSnapshot();
+    hideStore.cache = next;
+    try {
+      localStorage.setItem(HIDE_KEY, next ? "1" : "0");
+    } catch {
+      /* blocked storage: the choice holds for this page and no longer */
+    }
+    for (const listener of hideStore.listeners) listener();
+  },
+};
+
 /** Read state and keyboard navigation, both per-viewer conveniences. */
 export function EditionBody({ edition }: { edition: Edition }) {
   const read = useSyncExternalStore(
@@ -68,9 +108,34 @@ export function EditionBody({ edition }: { edition: Edition }) {
     readStore.getSnapshot,
     readStore.getServerSnapshot,
   );
+  const hideRead = useSyncExternalStore(
+    hideStore.subscribe,
+    hideStore.getSnapshot,
+    hideStore.getServerSnapshot,
+  );
   const [cursor, setCursor] = useState(-1);
-  const flat = edition.sections.flatMap((s) => s.entries);
   const refs = useRef<(HTMLAnchorElement | null)[]>([]);
+
+  const toggleHide = useCallback(() => {
+    hideStore.toggle();
+    // Indices shift when the list changes, so the cursor cannot survive it.
+    setCursor(-1);
+  }, []);
+
+  const total = edition.sections.reduce((n, s) => n + s.entries.length, 0);
+  const readCount = edition.sections.reduce(
+    (n, s) => n + s.entries.filter((e) => read.has(e.cluster_id)).length,
+    0,
+  );
+
+  // Hiding is applied before the flat list is built, so j/k only ever walks
+  // what is actually on the page.
+  const sections = hideRead
+    ? edition.sections
+        .map((s) => ({ ...s, entries: s.entries.filter((e) => !read.has(e.cluster_id)) }))
+        .filter((s) => s.entries.length > 0)
+    : edition.sections;
+  const flat = sections.flatMap((s) => s.entries);
 
   const markRead = useCallback((id: string) => readStore.mark(id), []);
 
@@ -97,16 +162,43 @@ export function EditionBody({ edition }: { edition: Edition }) {
       } else if (e.key === "m") {
         const entry = flat[cursor];
         if (entry) markRead(entry.cluster_id);
+      } else if (e.key === "u") {
+        e.preventDefault();
+        toggleHide();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cursor, flat, markRead]);
+  }, [cursor, flat, markRead, toggleHide]);
 
   let index = -1;
   return (
     <>
-      {edition.sections.map((section) => (
+      <div className="progress">
+        <span className="count">
+          {readCount} of {total} read
+        </span>
+        <button
+          type="button"
+          className="chip"
+          aria-pressed={hideRead}
+          onClick={toggleHide}
+          disabled={readCount === 0}
+        >
+          hide read
+        </button>
+      </div>
+
+      {sections.length === 0 ? (
+        <div className="empty">
+          <p>Every entry in this edition is read.</p>
+          <p>
+            Press <code>u</code> to show them again.
+          </p>
+        </div>
+      ) : null}
+
+      {sections.map((section) => (
         <section className="section" key={section.slot}>
           <div className="section-head">
             <h3>{section.label}</h3>

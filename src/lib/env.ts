@@ -20,6 +20,16 @@ export const env = {
   },
   editionTz: process.env.EDITION_TZ || "UTC",
   freezeHour: Number(process.env.EDITION_FREEZE_HOUR ?? 6),
+  // Absolute origin, needed by anything that has to name itself: the feed, the
+  // sitemap, canonical URLs. Vercel sets the project variable on every deploy.
+  get siteUrl(): string {
+    const explicit = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
+    if (explicit) return explicit.replace(/\/+$/, "");
+    const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    return vercel ? `https://${vercel}` : "http://localhost:3000";
+  },
+  // The free Postgres tier this is sized for. `npm run doctor` warns against it.
+  dbCapMb: Number(process.env.DB_CAP_MB ?? 500),
   anthropicKey: process.env.ANTHROPIC_API_KEY || "",
   enrichModel: process.env.ENRICH_MODEL || "claude-haiku-5-5",
   // The shelf is one long piece a week, not nineteen blurbs a day, so it is

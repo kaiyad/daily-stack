@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Masthead({
   date,
@@ -24,6 +25,7 @@ export function Masthead({
           <Link href="/archive">Archive</Link>
           <Link href="/cheatsheet">Cheatsheet</Link>
           <Link href="/shelf">Shelf</Link>
+          <ThemeToggle />
         </nav>
       </div>
 

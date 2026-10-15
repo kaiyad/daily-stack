@@ -37,12 +37,62 @@ npm run candidates            # ranked pool, nothing written - this is the thing
 npm run edition               # cut today's edition as a draft
 npm run edition -- --freeze   # ...and freeze it
 npm run dev                   # http://localhost:3000
+npm run doctor                # is any of this still working?
 npm test                      # pure-logic tests, no database needed
 ```
 
 `npm run daily` is ingest + build + freeze in one command, and
 `GET /api/cron` with `Authorization: Bearer $CRON_SECRET` is the same job for a
 platform scheduler.
+
+## Knowing it still works
+
+A frozen daily cannot show a reader that it has died. The last edition is
+immutable, so it looks exactly as final on the day the job breaks as it did the
+day it was cut - there is no spinner, no stale timestamp, nothing. That is the
+one real hazard of the format, and `npm run doctor` is the answer to it:
+
+```
+edition   2026-10-15 (frozen, 19 entries, expected 2026-10-15)
+ingest    0.1h ago · 92/93 sources ok
+units     53 days scheduled
+shelf     12 books scheduled, next 2026-10-16
+storage   14 MB · 3% of 500MB
+WARN 1 source(s) failing: rachelbythebay
+```
+
+It **exits non-zero on a problem**, and the daily workflow runs it as its last
+step, so a degradation becomes a failed run that GitHub emails you about. The
+line between a warning and a problem:
+
+| Problem (exit 1, HTTP 503) | Warning (exit 0) |
+|---|---|
+| newest edition more than a day behind | some sources failing |
+| last ingest older than the 36h window | under 14 days of units left |
+| over a quarter of enabled sources failing | storage past 70% of the cap |
+| no units scheduled at all | no books scheduled |
+| storage past 90% of `DB_CAP_MB` | |
+
+`GET /api/health` is the same report as JSON, uncached, 200 or 503. It needs no
+secret - it exposes aggregates and the slugs of failing feeds, all of which are
+already in this repo - so a free uptime pinger can watch it directly.
+
+## Syndication
+
+`/feed.xml` is an Atom feed of the last 20 **frozen** editions, and each entry
+carries the whole edition as HTML: a daily that syndicated only headlines would
+make a reader open nineteen tabs to use it, and an edition is already a
+finished page. Drafts are excluded, unlike everywhere else on the site - a page
+corrects itself on the next revalidate, but a feed entry a reader's client has
+already fetched is theirs for good, so only a final edition may be syndicated.
+
+`/sitemap.xml` lists every edition, unit and shelf piece, with past editions
+marked `never` since they cannot change. `/robots.txt` and
+`/manifest.webmanifest` are generated the same way; the manifest makes the site
+installable, opening on today.
+
+Everything absolute needs an origin: Vercel supplies it automatically, and
+`SITE_URL` overrides it for any other host or a custom domain.
 
 ## How the cut is made
 
@@ -120,6 +170,11 @@ recall rather than swallowing it. Revisions are frozen into `edition_revisions`
 at build time, exactly like entries — a past edition keeps the wording it
 shipped with. The block first appears on the fourth edition, since nothing is
 three days old before then.
+
+**Reading.** `j` / `k` move, `o` opens, `m` marks read and `u` hides what you
+have already read - read state is localStorage, per viewer, never synced. The
+masthead carries a light/dark toggle; with no explicit choice stored, the
+system preference wins.
 
 **Cheatsheet.** `/cheatsheet` is every published unit on one page, filterable
 by text and kind (`/` focuses the box). That is the "handy" half of the
@@ -281,6 +336,8 @@ kept for platforms with a longer ceiling and for manual triggering;
 1. **Neon** — create a project, copy the pooled connection string.
 2. **Vercel** — import the repo. Set `DATABASE_URL`, `EDITION_TZ`,
    `EDITION_FREEZE_HOUR`, and `ANTHROPIC_API_KEY` if you want summaries. Deploy.
+   Set `SITE_URL` as well if the site answers on a custom domain, or the feed
+   and sitemap will name the Vercel one.
 3. **Seed it once**, from your machine against the hosted database:
    ```bash
    DATABASE_URL='postgres://…neon…' npm run db:migrate
@@ -321,7 +378,8 @@ the site down.
   which is 06:00 for the default `Asia/Kolkata`. Change both if you change
   `EDITION_TZ` or `EDITION_FREEZE_HOUR`; nothing links them automatically.
 - **GitHub disables scheduled workflows** in a repo with no commits for 60 days.
-  A push, or a manual run, resets that.
+  A push, or a manual run, resets that. This is exactly the failure `/api/health`
+  exists to catch: the site keeps serving a frozen edition and looks fine.
 - **Scheduled runs start late**, sometimes by an hour. This does not matter: the
   edition window closed at the freeze hour whenever the job happens to start.
 - **Vercel Hobby is non-commercial.** Fine for a personal reader; not for
@@ -353,6 +411,25 @@ transaction: a draft rebuilt, the freeze transition allowed, and then a reword,
 an un-freeze, a delete and a delete of the book row all refused (`25006`,
 `25006`, `25006`, `23503`). The fixture was removed afterwards, so a local
 database shows an empty shelf.
+
+Verified on 2026-10-16, against a local database holding three editions, one of
+them a draft: `npm run doctor` reporting correctly and exiting 0, then exiting 1
+with a problem once `DB_CAP_MB` was lowered under the real size; `/api/health`
+returning 200 and the same figures as JSON; `/feed.xml` parsing as well-formed
+Atom with the full edition in each entry and **two** entries, the draft
+correctly left out; `/sitemap.xml` listing 62 URLs; `/robots.txt`,
+`/manifest.webmanifest` and `/icon.svg` served; the dated page carrying its own
+canonical and Open Graph URL; `tsc --noEmit`, `eslint .`, `npm test`
+(56 tests) and `next build`, which prerenders the feed, sitemap, robots and
+manifest as static and leaves only `/api/*` dynamic.
+
+The thresholds themselves are pure logic in `src/lib/health.ts`, covered by
+`src/lib/health.test.ts` at each boundary - a day behind versus two, 36 hours
+versus 37, a quarter of the feeds versus a quarter plus one.
+
+**Not verified: the theme toggle and hide-read in a browser.** Both are
+client-only and were checked by their rendered markup and by the stores they
+read, not by clicking them.
 
 **Not verified: either model call.** No `ANTHROPIC_API_KEY` was available, so
 neither `src/pipeline/enrich.ts` nor `src/pipeline/shelf.ts` has ever executed

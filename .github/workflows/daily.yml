@@ -48,6 +48,12 @@ jobs:
       - name: Prune raw items past the retention window
         run: npm run prune
 
+      # Exits non-zero on a stale edition, a quarter of the feeds failing, an
+      # exhausted curriculum or a near-full database - the degradations that
+      # otherwise show up as a site that quietly stops being today's.
+      - name: Check the stack's health
+        run: npm run doctor
+
       - name: Report
         if: always()
         run: |

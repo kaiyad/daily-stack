@@ -20,7 +20,15 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
-  return { title: `The Daily Stack · ${date}` };
+  const title = `The Daily Stack · ${date}`;
+  // The dated URL is the one worth sharing, so it names itself rather than
+  // inheriting the site-wide card from the layout.
+  return {
+    title,
+    alternates: { canonical: `/${date}` },
+    openGraph: { title, url: `/${date}` },
+    twitter: { title },
+  };
 }
 
 export default async function EditionPage({ params }: { params: Promise<{ date: string }> }) {

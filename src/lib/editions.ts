@@ -94,6 +94,54 @@ export async function getEdition(date: string): Promise<Edition | undefined> {
 }
 
 /**
+ * The newest frozen editions, whole, in three queries rather than three per
+ * edition. Drafts are excluded, unlike everywhere else: a page can correct
+ * itself on the next revalidate, but a feed entry a reader has already fetched
+ * is in their client for good, so only a final edition may be syndicated.
+ *
+ * Revisions are left empty - the feed carries the edition, not the recall block.
+ */
+export async function recentEditions(limit: number): Promise<Edition[]> {
+  const heads = await query<EditionRow & { concept_id: number | null }>(
+    `select ${DATE}, status, entry_count, built_at, frozen_at, concept_id
+       from editions where entry_count > 0 and status = 'frozen'
+       order by edition_date desc limit $1`,
+    [limit],
+  );
+  if (heads.length === 0) return [];
+
+  const dates = heads.map((h) => h.edition_date);
+  const [entries, concepts] = await Promise.all([
+    query<EntryRow & { edition_date: string }>(
+      `select ${DATE}, slot, rank, cluster_id, title, url, domain, source_label, summary, why,
+              tags, mention_count, discussion_url, points, comments, published_at
+         from edition_slots where edition_date = any($1::date[]) order by rank`,
+      [dates],
+    ),
+    query<ConceptRow>(`select * from concepts where id = any($1::int[])`, [
+      heads.map((h) => h.concept_id).filter((id): id is number => id !== null),
+    ]),
+  ]);
+
+  return heads.map((head) => {
+    const mine = entries.filter((e) => e.edition_date === head.edition_date);
+    return {
+      date: head.edition_date,
+      status: head.status,
+      sections: SLOTS.map((s) => ({
+        slot: s.id,
+        label: s.label,
+        blurb: s.blurb,
+        entries: mine.filter((e) => e.slot === s.id).sort((a, b) => a.rank - b.rank),
+      })).filter((s) => s.entries.length > 0),
+      concept: concepts.find((c) => c.id === head.concept_id),
+      revisions: [],
+      entryCount: head.entry_count,
+    };
+  });
+}
+
+/**
  * Missing table means migration 0003 has not reached this database yet. That
  * costs the Revision block, not the whole page - a prerender that dies here
  * takes the entire site down with it.

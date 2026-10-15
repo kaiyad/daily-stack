@@ -21,7 +21,8 @@
     "shelf:schedule": "tsx src/cli/schedule-books.ts",
     "shelf": "tsx src/cli/shelf.ts",
     "shelf:status": "tsx src/cli/shelf-status.ts",
-    "prune": "tsx src/cli/prune.ts"
+    "prune": "tsx src/cli/prune.ts",
+    "doctor": "tsx src/cli/doctor.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

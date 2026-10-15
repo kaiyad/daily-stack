@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The Daily Stack">
+  <rect width="64" height="64" rx="12" fill="#1a1915"/>
+  <rect x="14" y="16" width="36" height="7" rx="2" fill="#9a3412"/>
+  <rect x="14" y="28.5" width="36" height="7" rx="2" fill="#fbfaf8" opacity="0.85"/>
+  <rect x="14" y="41" width="22" height="7" rx="2" fill="#fbfaf8" opacity="0.55"/>
+</svg>
